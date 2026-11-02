@@ -11,6 +11,10 @@ export const USERS = {
   invited: { id: 'a0000000-0000-4000-8000-000000000007', email: 'invited@e2e.hisab-nikash.test' },
   newOwner: { id: 'a0000000-0000-4000-8000-000000000008', email: 'newowner@e2e.hisab-nikash.test' },
   otherSuperAdmin: { id: 'b0000000-0000-4000-8000-000000000001', email: 'othersa@e2e.hisab-nikash.test' },
+  // UI test users (e2e/ui)
+  uiOwner: { id: 'a0000000-0000-4000-8000-000000000101', email: 'uiowner@e2e.hisab-nikash.test' }, // verified, no org yet
+  mustChange: { id: 'a0000000-0000-4000-8000-000000000102', email: 'mustchange@e2e.hisab-nikash.test' }, // invited, must change password
+  resetter: { id: 'a0000000-0000-4000-8000-000000000103', email: 'resetter@e2e.hisab-nikash.test' }, // active editor
 }
 
 export const ORG_A = 'a1000000-0000-4000-8000-000000000001'
