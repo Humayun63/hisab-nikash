@@ -52,3 +52,36 @@ export const setupSchema = z.object({
   spaceName: z.string().trim().min(1, 'Space name is required').max(100, 'Must be 100 characters or fewer'),
   currencyCode: z.string().regex(/^[A-Z]{3}$/, 'Choose a currency'),
 })
+
+// ---------------------------------------------------------------------------
+// User and space management (super admin)
+// ---------------------------------------------------------------------------
+export const ROLES = ['viewer', 'editor', 'admin']
+
+// { [spaceId]: '' | 'viewer' | 'editor' | 'admin' } — '' means no access.
+const spaceAccess = z.record(z.string(), z.union([z.literal(''), z.enum(ROLES)])).default({})
+
+export const userCreateSchema = z.object({
+  firstName: personName('First name'),
+  lastName: personName('Last name'),
+  email,
+  password,
+  mustChangePassword: z.boolean(),
+  access: spaceAccess,
+})
+
+export const userEditSchema = z.object({
+  firstName: personName('First name'),
+  lastName: personName('Last name'),
+  email,
+  password: z.union([z.literal(''), password]),
+  mustChangePassword: z.boolean(),
+  enabled: z.boolean(),
+  access: spaceAccess,
+})
+
+export const spaceSchema = z.object({
+  name: z.string().trim().min(1, 'Space name is required').max(100, 'Must be 100 characters or fewer'),
+  description: z.string().trim().max(500, 'Must be 500 characters or fewer').optional().default(''),
+  currencyCode: z.string().regex(/^[A-Z]{3}$/, 'Choose a currency'),
+})

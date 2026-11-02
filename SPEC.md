@@ -242,20 +242,32 @@ Dashboard numbers come from Postgres functions (`rpc`). For speed they run as `s
 
 ## 8. Edge Functions
 
-All of these check that the caller is the super admin of the target organization, and they use the service-role key on the server only.
+There is one function, `admin-users` (`supabase/functions/admin-users/`), deployed with `verify_jwt = false`. It checks the caller itself with `auth.getUser(token)`: the caller must be an enabled super admin, and every target user must be in the caller's organization. The validation and permission rules are in `logic.js`, which Vitest unit-tests.
 
-| Function | Purpose |
+| Action | What it does |
 |---|---|
-| `admin-create-user` | `auth.admin.createUser({ email_confirm: true, password })`, insert the profile (`status='invited'`) and space memberships, send the invitation email. |
-| `admin-update-user` | Update name, email or password, enable/disable (disable also bans the auth user), set `must_change_password`. |
-| `admin-delete-user` | Delete the auth user. Entries are kept, with `created_by` set to null. |
-| `resend-invitation` | Send the invitation email again. |
+| `create` | Creates the auth user (email confirmed, with the super admin's password), the profile (`status='invited'`, `must_change_password` defaults to true) and the space memberships, then sends the invitation. If any step after creating the auth user fails, the auth user is deleted, so no orphan account can call `setup_organization`. |
+| `update` | Changes name, email, password, `must_change_password`, enabled/disabled and the full list of space roles (`memberships`), all in one request. |
+| `delete` | Deletes the auth user. The profile and memberships cascade. Entries remain, with `created_by = null`. |
+| `resend_invitation` | Sends the invitation again (refused for disabled users). |
 
-`admin-create-user` must not leave an auth user without a profile: if inserting the profile fails, it deletes the auth user. An orphaned, verified auth user could otherwise call `setup_organization` and start their own organization.
+**Ordering rules inside `update`:**
+- **Disable:** the profile is set to `disabled` first, then the Auth ban is applied, so RLS cuts access even if the ban fails.
+- **Enable:** the ban is lifted first, then the profile goes back to `active`, or to `invited` if the user never signed in.
+- **Password:** a password change clears `must_change_password` via the `auth.users` trigger, so any explicit `must_change_password` value is written afterwards.
+- **Self-protection:** the super admin can't disable or delete themselves, and is never given space memberships.
+
+**Invitations** are Supabase magic-link emails, sent with `signInWithOtp` and `shouldCreateUser: false`.
+- The link signs the user in through `/auth/callback`, which records the login and marks the invitation accepted.
+- If sending fails, the user is still created. The UI tells the super admin to share the sign-in details directly.
+- The link goes to the request's origin only if it is listed in `APP_URL` / `ALLOWED_ORIGINS` (function secrets; defaults are `http://localhost:5173` and `http://127.0.0.1:5173`).
+- A branded template (`supabase/templates/invitation.html`) shows the organization and inviter, read from the user's metadata. Supabase only allows custom templates with custom SMTP, so the template stays commented out in `config.toml` until SMTP is set up. Until then, the default "magic link" email is sent.
+
+Spaces, their settings and space members are managed straight from the browser under RLS (super admin only, §7). User accounts and their space roles go through `admin-users`.
 
 First-login setup doesn't need an Edge Function. `setup_organization(...)` is a Postgres RPC that creates the organization, the super admin profile and the first space in one transaction. It refuses users who already have a profile or whose email isn't verified.
 
-On a user's first successful login, the client calls an RPC `mark_login()` that sets `last_login_at`. If the status is `invited`, it changes to `active` and `accepted_at` is set.
+On a user's first successful login (password or email link), the client calls the RPC `mark_login()`. It sets `last_login_at`, and if the status is `invited` it changes it to `active` and sets `accepted_at`.
 
 ## 9. Pages & Routes
 

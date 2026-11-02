@@ -64,8 +64,9 @@ test.describe('login', () => {
     await expect(page).toHaveURL(/localhost:5173\/$/)
     await expect(page.getByRole('heading', { name: 'Welcome, Sara' })).toBeVisible()
     await expect(page.getByText('E2E Org A').first()).toBeVisible()
-    await expect(page.getByText('Office', { exact: true })).toBeVisible()
-    await expect(page.getByText('Secret', { exact: true })).toBeVisible()
+    const main = page.getByRole('main')
+    await expect(main.getByText('Office', { exact: true })).toBeVisible()
+    await expect(main.getByText('Secret', { exact: true })).toBeVisible()
 
     await page.reload()
     await expect(page.getByRole('heading', { name: 'Welcome, Sara' })).toBeVisible()
@@ -228,7 +229,7 @@ test.describe('setup', () => {
     await expect(page).toHaveURL(/localhost:5173\/$/)
     await expect(page.getByRole('heading', { name: 'Welcome, Uma' })).toBeVisible()
     await expect(page.getByText('Umas UI Org').first()).toBeVisible()
-    await expect(page.getByText('Household', { exact: true })).toBeVisible()
+    await expect(page.getByRole('main').getByText('Household', { exact: true })).toBeVisible()
     await expect(page.getByText(/\$ USD/)).toBeVisible()
 
     await page.goto('/setup')
