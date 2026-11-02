@@ -15,7 +15,11 @@ with u(id, email, first_name, last_name) as (
     ('a0000000-0000-4000-8000-000000000006'::uuid, 'disabled@e2e.hisab-nikash.test', 'Dan',    'Disabled'),
     ('a0000000-0000-4000-8000-000000000007'::uuid, 'invited@e2e.hisab-nikash.test',  'Ivy',    'Invited'),
     ('a0000000-0000-4000-8000-000000000008'::uuid, 'newowner@e2e.hisab-nikash.test', 'Nora',   'Owner'),
-    ('b0000000-0000-4000-8000-000000000001'::uuid, 'othersa@e2e.hisab-nikash.test',  'Omar',   'Other')
+    ('b0000000-0000-4000-8000-000000000001'::uuid, 'othersa@e2e.hisab-nikash.test',  'Omar',   'Other'),
+    -- UI test users (e2e/ui): kept separate from the database tests so they can mutate freely.
+    ('a0000000-0000-4000-8000-000000000101'::uuid, 'uiowner@e2e.hisab-nikash.test',    'Uma',  'Owner'),
+    ('a0000000-0000-4000-8000-000000000102'::uuid, 'mustchange@e2e.hisab-nikash.test', 'Milo', 'Change'),
+    ('a0000000-0000-4000-8000-000000000103'::uuid, 'resetter@e2e.hisab-nikash.test',   'Rita', 'Reset')
 ),
 ins as (
   insert into auth.users (
@@ -53,8 +57,12 @@ insert into public.profiles (id, org_id, first_name, last_name, email, is_super_
   ('a0000000-0000-4000-8000-000000000005', 'a1000000-0000-4000-8000-000000000001', 'Gina', 'Granted',  'granted@e2e.hisab-nikash.test',  false, 'active'),
   ('a0000000-0000-4000-8000-000000000006', 'a1000000-0000-4000-8000-000000000001', 'Dan',  'Disabled', 'disabled@e2e.hisab-nikash.test', false, 'disabled'),
   ('a0000000-0000-4000-8000-000000000007', 'a1000000-0000-4000-8000-000000000001', 'Ivy',  'Invited',  'invited@e2e.hisab-nikash.test',  false, 'invited'),
-  ('b0000000-0000-4000-8000-000000000001', 'b1000000-0000-4000-8000-000000000001', 'Omar', 'Other',    'othersa@e2e.hisab-nikash.test',  true,  'active');
--- newowner (…008) intentionally has no profile: they test setup_organization().
+  ('b0000000-0000-4000-8000-000000000001', 'b1000000-0000-4000-8000-000000000001', 'Omar', 'Other',    'othersa@e2e.hisab-nikash.test',  true,  'active'),
+  ('a0000000-0000-4000-8000-000000000102', 'a1000000-0000-4000-8000-000000000001', 'Milo', 'Change',   'mustchange@e2e.hisab-nikash.test', false, 'invited'),
+  ('a0000000-0000-4000-8000-000000000103', 'a1000000-0000-4000-8000-000000000001', 'Rita', 'Reset',    'resetter@e2e.hisab-nikash.test',   false, 'active');
+
+update public.profiles set must_change_password = true where id = 'a0000000-0000-4000-8000-000000000102';
+-- newowner (…008) and uiowner (…101) intentionally have no profile: they test setup_organization().
 
 -- ---------------------------------------------------------------------------
 -- Spaces: Office (members), Secret (no members), and Org B's space
@@ -70,7 +78,9 @@ insert into public.space_members (space_id, user_id, role) values
   ('a2000000-0000-4000-8000-000000000001', 'a0000000-0000-4000-8000-000000000004', 'admin'),
   ('a2000000-0000-4000-8000-000000000001', 'a0000000-0000-4000-8000-000000000005', 'viewer'),
   ('a2000000-0000-4000-8000-000000000001', 'a0000000-0000-4000-8000-000000000006', 'editor'),
-  ('a2000000-0000-4000-8000-000000000001', 'a0000000-0000-4000-8000-000000000007', 'viewer');
+  ('a2000000-0000-4000-8000-000000000001', 'a0000000-0000-4000-8000-000000000007', 'viewer'),
+  ('a2000000-0000-4000-8000-000000000001', 'a0000000-0000-4000-8000-000000000102', 'viewer'),
+  ('a2000000-0000-4000-8000-000000000001', 'a0000000-0000-4000-8000-000000000103', 'editor');
 
 insert into public.folders (id, space_id, name, created_by) values
   ('a3000000-0000-4000-8000-000000000001', 'a2000000-0000-4000-8000-000000000001', 'Office Folder', 'a0000000-0000-4000-8000-000000000001'),

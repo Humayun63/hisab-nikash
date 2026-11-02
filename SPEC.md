@@ -75,15 +75,17 @@ Assumptions:
 - Public `/register` page with fields: First name, Last name, Email, Password, Confirm password.
 - Password rule: at least 8 characters, including at least one letter and one number.
 - Registering creates an unverified auth user. Supabase sends a verification email, and the user can't log in until they click the link.
-- After the first verified login, a one-step setup asks for the **organization name** (prefilled with "{First name}'s Organization"), **timezone** (default `Asia/Dhaka`) and a **first space** with its name and currency. On completion the app creates the organization, sets the user as super admin, and creates the first space.
+- After the first verified login, a one-step setup asks for the **organization name** (prefilled with "{First name}'s Organization"), **timezone** (defaults to the browser's timezone, or `Asia/Dhaka` if that isn't available), **week start** (default Saturday) and a **first space** with its name and currency. On completion the app creates the organization, sets the user as super admin, and creates the first space.
 - Users created by a super admin never use this page.
 
 ### 5.2 Login (all users)
 - `/login` asks for email and password.
 - "Forgot password" sends a reset email through Supabase. The reset page is `/reset-password`.
-- An unverified super admin sees "Please verify your email" with a **Resend** button.
+- An unverified super admin sees "Please verify your email" with a **Resend** button. Supabase doesn't reveal whether an email exists or is unverified (both return "invalid credentials"), so the login page offers Resend after any failed sign-in. Resends are limited to one per minute.
+- The reset link signs the user in with a *recovery session*. Until they choose a new password, every page sends them back to `/reset-password`.
 - A disabled user sees "Your account has been disabled. Contact your administrator."
-- If `must_change_password` is set, the user is sent to `/change-password` before they can use the app (§5.3).
+- If `must_change_password` is set, the user is sent to `/change-password` before they can use the app (§5.3). The server clears the flag only when the password actually changes (a trigger on `auth.users`), so the client can't skip the step.
+- **Email delivery:** Supabase's built-in email sender only delivers to the project's team members and allows about 2 emails an hour. Real users need custom SMTP, configured under Auth → SMTP (e.g. Resend), before launch.
 
 ### 5.3 User management (super admin)
 `/settings/users`
@@ -320,7 +322,12 @@ The database also enforces these, beyond §7:
 - **Space members:** must belong to the same organization. The super admin is never added as a member, since they already see every space.
 - **Known limitation:** an admin who creates or renames a category to the same name as a restricted category they can't see gets a "duplicate name" error. That tells them a hidden category with that name exists, but nothing else about it.
 
-Tests: run `npm run test:e2e`. The `db` project seeds test users for every role (`*@e2e.hisab-nikash.test`) into the linked Supabase project, tests all of the above through the real API, and then removes them.
+**Auth configuration** lives in `supabase/config.toml` and is applied with `npx supabase config push`. Run `config diff` first.
+- Site URL `http://localhost:5173`, with redirects allowed to `http://localhost:5173/**`. Add the production URL at deploy time.
+- Passwords: at least 8 characters, with letters and digits.
+- **Sign-in rate limit:** raised to 200 per 5 minutes (from 30) so the e2e suite doesn't hit `429`s. Lower it again for production.
+
+Tests: run `npm test` for the Vitest unit tests and `npm run test:e2e` for the Playwright tests. The `db` project seeds test users for every role (`*@e2e.hisab-nikash.test`) into the linked Supabase project, tests all of the above through the real API, and then removes them.
 
 ## 13. Open Questions / Assumptions to Confirm
 1. **Week start**: defaults to Saturday (common in Bangladesh). Should it be Sunday or Monday instead?

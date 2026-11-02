@@ -364,7 +364,8 @@ test.describe('disabled user', () => {
     const db = await signIn(USERS.disabled.email)
     expect((await db.from('spaces').select('id')).data).toEqual([])
     expect((await db.from('entries').select('id')).data).toEqual([])
-    expect((await db.from('profiles').select('id')).data).toEqual([])
+    // Only their own profile, so the app can show "account disabled".
+    expect((await db.from('profiles').select('id, status')).data).toEqual([{ id: USERS.disabled.id, status: 'disabled' }])
     const { error } = await summary(db)
     expect(error).not.toBeNull()
   })
@@ -435,6 +436,32 @@ test.describe('user deletion (service role)', () => {
           delete from auth.users where id = '${USERS.admin.id}';
           select count(*) into v_count from public.entries where note = 'rent yesterday' and created_by is null;
           if v_count <> 1 then raise exception 'E2E_FAIL entry not kept with null author'; end if;
+          raise exception 'E2E_OK';
+        end $$;`,
+    })
+    expect(out).toContain('E2E_OK')
+  })
+})
+
+test.describe('forced password change', () => {
+  test('cannot be skipped from the client', async () => {
+    const db = await signIn(USERS.viewer.email)
+    const { error } = await db.rpc('complete_password_change')
+    expect(error).not.toBeNull() // removed: only an actual password change clears the flag
+  })
+
+  test('changing the password clears must_change_password', async () => {
+    test.setTimeout(120_000)
+    // DO block that always raises at the end, so nothing is committed.
+    const out = runSql({
+      sql: `do $$
+        begin
+          update public.profiles set must_change_password = true where id = '${USERS.granted.id}';
+          update auth.users set encrypted_password = extensions.crypt('Another-Pass-2', extensions.gen_salt('bf'))
+            where id = '${USERS.granted.id}';
+          if (select must_change_password from public.profiles where id = '${USERS.granted.id}') then
+            raise exception 'E2E_FAIL flag still set';
+          end if;
           raise exception 'E2E_OK';
         end $$;`,
     })
