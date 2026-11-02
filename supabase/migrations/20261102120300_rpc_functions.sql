@@ -138,7 +138,7 @@ as $$
   with bounds as (
     select p_from - (p_to - p_from + 1) as prev_from, p_from - 1 as prev_to
   ),
-  rows as (
+  scoped as (
     select v.*, v.entry_date >= p_from as is_current
     from bounds b, private.visible_entries(p_space_id, b.prev_from, p_to, p_folder_id, p_file_id) v
   )
@@ -151,7 +151,7 @@ as $$
     coalesce(sum(amount) filter (where not is_current and type = 'expense'), 0),
     coalesce(sum(case when type = 'income' then amount else -amount end) filter (where not is_current), 0),
     count(*) filter (where not is_current)
-  from rows
+  from scoped
 $$;
 
 -- Totals per category for [p_from, p_to]; only categories with entries in the range.
@@ -170,6 +170,17 @@ as $$
   join public.categories c on c.id = v.category_id
   group by c.id, c.name, c.color, c.type
   order by c.type, sum(v.amount) desc
+$$;
+
+create function private.bucket_start(p_date date, p_bucket text, p_week_start int)
+returns date
+language sql immutable set search_path = ''
+as $$
+  select case p_bucket
+    when 'day' then p_date
+    when 'week' then p_date - ((extract(dow from p_date)::int - p_week_start + 7) % 7)
+    when 'month' then date_trunc('month', p_date)::date
+  end
 $$;
 
 -- Income/expense per bucket ('day' | 'week' | 'month'), with empty buckets filled in.
@@ -217,21 +228,10 @@ begin
       group by 1
     )
     select s.b::date, coalesce(t.inc, 0), coalesce(t.exp, 0)
-    from generate_series(v_first, v_last, v_step) as s(b)
+    from generate_series(v_first::timestamp, v_last::timestamp, v_step) as s(b)
     left join totals t on t.b = s.b::date
     order by 1;
 end;
-$$;
-
-create function private.bucket_start(p_date date, p_bucket text, p_week_start int)
-returns date
-language sql immutable set search_path = ''
-as $$
-  select case p_bucket
-    when 'day' then p_date
-    when 'week' then p_date - ((extract(dow from p_date)::int - p_week_start + 7) % 7)
-    when 'month' then date_trunc('month', p_date)::date
-  end
 $$;
 
 -- ---------------------------------------------------------------------------

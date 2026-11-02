@@ -233,7 +233,7 @@ Policies, summarized:
 - **categories**: readable if the user is a member and `can_see_category`. Admins and the super admin can write. Only the super admin can change `is_restricted` (enforced with a trigger).
 - **entries**: readable if the user is a member and `can_see_category(category_id)`. Editors and above can insert, update and delete, but only with a category they can see. A trigger sets `created_by`, `updated_by` and `updated_at`.
 
-Dashboard numbers come from Postgres functions (`rpc`) that run with the caller's rights (`security invoker`), so RLS filters hidden categories out of the totals automatically:
+Dashboard numbers come from Postgres functions (`rpc`). For speed they run as `security definer` and apply the same visibility rules once per call (in `private.visible_entries`) instead of per row through RLS. The permission tests check that hidden categories never reach the totals:
 - `dashboard_summary(space_id, from, to, folder_id?, file_id?)` returns income, expense, net and the previous period's values.
 - `dashboard_by_category(space_id, from, to, folder_id?, file_id?)`
 - `dashboard_trend(space_id, from, to, bucket, folder_id?, file_id?)`
@@ -244,11 +244,14 @@ All of these check that the caller is the super admin of the target organization
 
 | Function | Purpose |
 |---|---|
-| `setup-organization` | First-login setup: create the organization, the super admin profile and the first space in one step. |
 | `admin-create-user` | `auth.admin.createUser({ email_confirm: true, password })`, insert the profile (`status='invited'`) and space memberships, send the invitation email. |
 | `admin-update-user` | Update name, email or password, enable/disable (disable also bans the auth user), set `must_change_password`. |
 | `admin-delete-user` | Delete the auth user. Entries are kept, with `created_by` set to null. |
 | `resend-invitation` | Send the invitation email again. |
+
+`admin-create-user` must not leave an auth user without a profile: if inserting the profile fails, it deletes the auth user. An orphaned, verified auth user could otherwise call `setup_organization` and start their own organization.
+
+First-login setup doesn't need an Edge Function. `setup_organization(...)` is a Postgres RPC that creates the organization, the super admin profile and the first space in one transaction. It refuses users who already have a profile or whose email isn't verified.
 
 On a user's first successful login, the client calls an RPC `mark_login()` that sets `last_login_at`. If the status is `invited`, it changes to `active` and `accepted_at` is set.
 
@@ -307,6 +310,17 @@ hisab-nikash/
 5. **Entries**: quick add, table with sorting, filtering and totals, plus the space-wide view.
 6. **Dashboard**: summary, category breakdowns, trend chart, custom range.
 7. **Polish**: responsive pass, empty states, error handling, and RLS tests (one test user per role, checking that hidden categories never leak).
+
+## 12a. Database rules added in milestone 1
+
+The database also enforces these, beyond §7:
+- **Entries:** can't be future-dated (checked against the organization's timezone) and can't use an archived category. `created_by` and `updated_by` are always set from the logged-in user.
+- **Categories:** a category's type can't change once it has entries. Making a restricted category public again clears its access list.
+- **Folders and files:** only someone who can see every entry inside one can delete it. In practice an admin can't delete a folder or file containing entries in restricted categories, but the super admin can.
+- **Space members:** must belong to the same organization. The super admin is never added as a member, since they already see every space.
+- **Known limitation:** an admin who creates or renames a category to the same name as a restricted category they can't see gets a "duplicate name" error. That tells them a hidden category with that name exists, but nothing else about it.
+
+Tests: run `npm run test:e2e`. The `db` project seeds test users for every role (`*@e2e.hisab-nikash.test`) into the linked Supabase project, tests all of the above through the real API, and then removes them.
 
 ## 13. Open Questions / Assumptions to Confirm
 1. **Week start**: defaults to Saturday (common in Bangladesh). Should it be Sunday or Monday instead?
