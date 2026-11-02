@@ -44,3 +44,29 @@ export const CATEGORIES = {
   hidden: 'a5000000-0000-4000-8000-000000000005', // in the Secret space
   orgB: 'b5000000-0000-4000-8000-000000000001',
 }
+
+// ---------------------------------------------------------------------------
+// Milestone 3: user/space management
+// ---------------------------------------------------------------------------
+// Org C — UI tests (e2e/ui/management.spec.js). Users created by tests use *@e2e.hisab-nikash.test.
+export const ORG_C = {
+  id: 'c1000000-0000-4000-8000-000000000001',
+  name: 'E2E Org C',
+  superAdmin: { id: 'c0000000-0000-4000-8000-000000000001', email: 'uisa@e2e.hisab-nikash.test', name: 'Cara Chief' },
+  member: { id: 'c0000000-0000-4000-8000-000000000002', email: 'uimember@e2e.hisab-nikash.test', name: 'Max Member' }, // editor in C Office
+  toggle: { id: 'c0000000-0000-4000-8000-000000000003', email: 'uidisable@e2e.hisab-nikash.test', name: 'Dora Toggle' }, // no spaces
+  spaces: {
+    office: { id: 'c2000000-0000-4000-8000-000000000001', name: 'C Office' },
+    projects: { id: 'c2000000-0000-4000-8000-000000000002', name: 'C Projects' },
+  },
+}
+
+// Org D — admin-users Edge Function API tests (e2e/db/admin-users.spec.js).
+export const ORG_D = {
+  id: 'd1000000-0000-4000-8000-000000000001',
+  superAdmin: { id: 'd0000000-0000-4000-8000-000000000001', email: 'fnsa@e2e.hisab-nikash.test' },
+  viewer: { id: 'd0000000-0000-4000-8000-000000000002', email: 'fnviewer@e2e.hisab-nikash.test' },
+  target: { id: 'd0000000-0000-4000-8000-000000000003', email: 'fntarget@e2e.hisab-nikash.test' }, // gets updated/disabled
+  deletable: { id: 'd0000000-0000-4000-8000-000000000004', email: 'fndelete@e2e.hisab-nikash.test' }, // has one entry ("by dell")
+  space: { id: 'd2000000-0000-4000-8000-000000000001', name: 'D Space' },
+}

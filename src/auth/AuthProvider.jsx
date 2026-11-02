@@ -59,7 +59,8 @@ export function AuthProvider({ children }) {
       if (event === 'SIGNED_OUT') {
         writeRecoveryFlag(false)
         setRecoveryMode(false)
-        queryClient.removeQueries({ queryKey: ['profile'] })
+        // Drop everything cached for the previous user (spaces, users…), not just the profile.
+        queryClient.clear()
       }
     })
     return () => listener.subscription.unsubscribe()
@@ -124,8 +125,9 @@ export function AuthProvider({ children }) {
       signOut,
       refreshProfile,
       finishRecovery,
+      markLogin: () => (userId ? markLogin(userId) : Promise.resolve()),
     }),
-    [session, userId, profileQuery.data, profileQuery.error, profileQuery.isPending, sessionLoading, recoveryMode, signIn, signOut, refreshProfile, finishRecovery],
+    [session, userId, profileQuery.data, profileQuery.error, profileQuery.isPending, sessionLoading, recoveryMode, signIn, signOut, refreshProfile, finishRecovery, markLogin],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

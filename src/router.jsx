@@ -10,6 +10,12 @@ import ChangePasswordPage from './pages/auth/ChangePasswordPage'
 import AccountDisabledPage from './pages/auth/AccountDisabledPage'
 import SetupPage from './pages/setup/SetupPage'
 import HomePage from './pages/HomePage'
+import RequireSuperAdmin from './auth/RequireSuperAdmin'
+import AppLayout from './components/layout/AppLayout'
+import SpacePage from './pages/spaces/SpacePage'
+import UsersPage from './pages/settings/UsersPage'
+import SpacesPage from './pages/settings/SpacesPage'
+import SpaceSettingsPage from './pages/settings/SpaceSettingsPage'
 import NotFoundPage from './pages/NotFoundPage'
 
 export const routes = [
@@ -30,7 +36,26 @@ export const routes = [
   { element: <RequireStep step="/change-password" />, children: [{ path: '/change-password', element: <ChangePasswordPage /> }] },
   { element: <RequireStep step="/account-disabled" />, children: [{ path: '/account-disabled', element: <AccountDisabledPage /> }] },
 
-  { element: <RequireReady />, children: [{ path: '/', element: <HomePage /> }] },
+  {
+    element: <RequireReady />,
+    children: [
+      {
+        element: <AppLayout />,
+        children: [
+          { path: '/', element: <HomePage /> },
+          { path: '/spaces/:spaceId', element: <SpacePage /> },
+          {
+            element: <RequireSuperAdmin />,
+            children: [
+              { path: '/settings/users', element: <UsersPage /> },
+              { path: '/settings/spaces', element: <SpacesPage /> },
+              { path: '/spaces/:spaceId/settings', element: <SpaceSettingsPage /> },
+            ],
+          },
+        ],
+      },
+    ],
+  },
   { path: '*', element: <NotFoundPage /> },
 ]
 

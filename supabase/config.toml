@@ -420,3 +420,16 @@ enabled = true
 # formatted with uppercase keywords, indent 2, max width 180, trailing commas,
 # and column/key alignment. Set to "null" to emit raw, unformatted SQL.
 # format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":180,\"commaStyle\":\"trailing\"}"
+
+# Super admin user management (SPEC.md §8). The function verifies the caller itself.
+[functions.admin-users]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/admin-users/index.js"
+
+# Invitations are sent as magic-link emails by the admin-users Edge Function.
+# Supabase only allows custom templates with a custom SMTP provider (not on the free plan's
+# default sender). After configuring SMTP, uncomment and run `npx supabase config push`:
+# [auth.email.template.magic_link]
+# subject = "You're invited to Hisab Nikash"
+# content_path = "./supabase/templates/invitation.html"

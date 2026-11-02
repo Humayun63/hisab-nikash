@@ -124,3 +124,72 @@ from (values
 ) as v(space_id, file_id, category_id, amount, days_ago, note);
 
 update public.categories set archived_at = now() where id = 'a5000000-0000-4000-8000-000000000004';
+
+-- ---------------------------------------------------------------------------
+-- Milestone 3: isolated organizations for user/space management tests
+--   Org C — UI tests (e2e/ui/management.spec.js)
+--   Org D — admin-users Edge Function API tests (e2e/db/admin-users.spec.js)
+-- ---------------------------------------------------------------------------
+with u(id, email, first_name, last_name) as (
+  values
+    ('c0000000-0000-4000-8000-000000000001'::uuid, 'uisa@e2e.hisab-nikash.test',      'Cara', 'Chief'),
+    ('c0000000-0000-4000-8000-000000000002'::uuid, 'uimember@e2e.hisab-nikash.test',  'Max',  'Member'),
+    ('c0000000-0000-4000-8000-000000000003'::uuid, 'uidisable@e2e.hisab-nikash.test', 'Dora', 'Toggle'),
+    ('d0000000-0000-4000-8000-000000000001'::uuid, 'fnsa@e2e.hisab-nikash.test',      'Fern', 'Boss'),
+    ('d0000000-0000-4000-8000-000000000002'::uuid, 'fnviewer@e2e.hisab-nikash.test',  'Finn', 'Viewer'),
+    ('d0000000-0000-4000-8000-000000000003'::uuid, 'fntarget@e2e.hisab-nikash.test',  'Tess', 'Target'),
+    ('d0000000-0000-4000-8000-000000000004'::uuid, 'fndelete@e2e.hisab-nikash.test',  'Dell', 'Gone')
+),
+ins as (
+  insert into auth.users (
+    instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
+    raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+    confirmation_token, recovery_token, email_change_token_new, email_change
+  )
+  select
+    '00000000-0000-0000-0000-000000000000', u.id, 'authenticated', 'authenticated', u.email,
+    extensions.crypt('E2e-Test-Pass-1!', extensions.gen_salt('bf')), now(),
+    '{"provider":"email","providers":["email"]}',
+    jsonb_build_object('first_name', u.first_name, 'last_name', u.last_name),
+    now(), now(), '', '', '', ''
+  from u
+  returning id, email
+)
+insert into auth.identities (id, user_id, provider_id, provider, identity_data, last_sign_in_at, created_at, updated_at)
+select gen_random_uuid(), ins.id, ins.id::text, 'email',
+       jsonb_build_object('sub', ins.id::text, 'email', ins.email, 'email_verified', true),
+       now(), now(), now()
+from ins;
+
+insert into public.organizations (id, name, timezone, week_start, owner_id) values
+  ('c1000000-0000-4000-8000-000000000001', 'E2E Org C', 'Asia/Dhaka', 6, 'c0000000-0000-4000-8000-000000000001'),
+  ('d1000000-0000-4000-8000-000000000001', 'E2E Org D', 'Asia/Dhaka', 6, 'd0000000-0000-4000-8000-000000000001');
+
+insert into public.profiles (id, org_id, first_name, last_name, email, is_super_admin, status, accepted_at) values
+  ('c0000000-0000-4000-8000-000000000001', 'c1000000-0000-4000-8000-000000000001', 'Cara', 'Chief',  'uisa@e2e.hisab-nikash.test',      true,  'active', now()),
+  ('c0000000-0000-4000-8000-000000000002', 'c1000000-0000-4000-8000-000000000001', 'Max',  'Member', 'uimember@e2e.hisab-nikash.test',  false, 'active', now()),
+  ('c0000000-0000-4000-8000-000000000003', 'c1000000-0000-4000-8000-000000000001', 'Dora', 'Toggle', 'uidisable@e2e.hisab-nikash.test', false, 'active', now()),
+  ('d0000000-0000-4000-8000-000000000001', 'd1000000-0000-4000-8000-000000000001', 'Fern', 'Boss',   'fnsa@e2e.hisab-nikash.test',      true,  'active', now()),
+  ('d0000000-0000-4000-8000-000000000002', 'd1000000-0000-4000-8000-000000000001', 'Finn', 'Viewer', 'fnviewer@e2e.hisab-nikash.test',  false, 'active', now()),
+  ('d0000000-0000-4000-8000-000000000003', 'd1000000-0000-4000-8000-000000000001', 'Tess', 'Target', 'fntarget@e2e.hisab-nikash.test',  false, 'active', now()),
+  ('d0000000-0000-4000-8000-000000000004', 'd1000000-0000-4000-8000-000000000001', 'Dell', 'Gone',   'fndelete@e2e.hisab-nikash.test',  false, 'active', now());
+
+insert into public.spaces (id, org_id, name, currency_code, currency_symbol, created_by) values
+  ('c2000000-0000-4000-8000-000000000001', 'c1000000-0000-4000-8000-000000000001', 'C Office',   'BDT', '৳', 'c0000000-0000-4000-8000-000000000001'),
+  ('c2000000-0000-4000-8000-000000000002', 'c1000000-0000-4000-8000-000000000001', 'C Projects', 'USD', '$', 'c0000000-0000-4000-8000-000000000001'),
+  ('d2000000-0000-4000-8000-000000000001', 'd1000000-0000-4000-8000-000000000001', 'D Space',    'BDT', '৳', 'd0000000-0000-4000-8000-000000000001');
+
+insert into public.space_members (space_id, user_id, role) values
+  ('c2000000-0000-4000-8000-000000000001', 'c0000000-0000-4000-8000-000000000002', 'editor'),
+  ('d2000000-0000-4000-8000-000000000001', 'd0000000-0000-4000-8000-000000000002', 'viewer'),
+  ('d2000000-0000-4000-8000-000000000001', 'd0000000-0000-4000-8000-000000000003', 'viewer');
+
+-- An entry by the user that the API tests delete, to check entries survive user deletion.
+insert into public.folders (id, space_id, name, created_by) values
+  ('d3000000-0000-4000-8000-000000000001', 'd2000000-0000-4000-8000-000000000001', 'D Folder', 'd0000000-0000-4000-8000-000000000001');
+insert into public.files (id, folder_id, space_id, name, created_by) values
+  ('d4000000-0000-4000-8000-000000000001', 'd3000000-0000-4000-8000-000000000001', 'd2000000-0000-4000-8000-000000000001', 'D File', 'd0000000-0000-4000-8000-000000000001');
+insert into public.categories (id, space_id, name, type, created_by) values
+  ('d5000000-0000-4000-8000-000000000001', 'd2000000-0000-4000-8000-000000000001', 'D Cat', 'expense', 'd0000000-0000-4000-8000-000000000001');
+insert into public.entries (space_id, file_id, category_id, amount, entry_date, note, created_by) values
+  ('d2000000-0000-4000-8000-000000000001', 'd4000000-0000-4000-8000-000000000001', 'd5000000-0000-4000-8000-000000000001', 42, (now() at time zone 'Asia/Dhaka')::date, 'by dell', 'd0000000-0000-4000-8000-000000000004');
