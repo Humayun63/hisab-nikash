@@ -85,32 +85,34 @@ export default function UsersPage() {
       )}
 
       {usersQuery.data && (
-        <div className="mt-6 overflow-x-auto rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
-          <table className="min-w-full divide-y divide-slate-200 text-sm">
-            <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-              <tr>
-                <th scope="col" className="px-4 py-3">Name</th>
-                <th scope="col" className="px-4 py-3">Status</th>
-                <th scope="col" className="px-4 py-3">Spaces</th>
-                <th scope="col" className="px-4 py-3">Created</th>
-                <th scope="col" className="px-4 py-3 text-right">Actions</th>
+        // On phones each row is stacked as a card so the actions stay visible; from `sm` up it's a
+        // normal table. The explicit ARIA roles keep table semantics when the display is changed.
+        <div className="mt-6 rounded-xl bg-white shadow-sm ring-1 ring-slate-200 sm:overflow-x-auto">
+          <table role="table" className="block w-full text-sm sm:table sm:min-w-full">
+            <thead role="rowgroup" className="hidden bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 sm:table-header-group">
+              <tr role="row">
+                <th role="columnheader" scope="col" className="rounded-tl-xl px-4 py-3">Name</th>
+                <th role="columnheader" scope="col" className="px-4 py-3">Status</th>
+                <th role="columnheader" scope="col" className="px-4 py-3">Spaces</th>
+                <th role="columnheader" scope="col" className="px-4 py-3">Created</th>
+                <th role="columnheader" scope="col" className="rounded-tr-xl px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody role="rowgroup" className="block divide-y divide-slate-100 sm:table-row-group">
               {usersQuery.data.map((user) => {
                 const isSelf = user.id === me.id
                 return (
-                  <tr key={user.id}>
-                    <td className="px-4 py-3">
+                  <tr key={user.id} role="row" className="block px-4 py-3 sm:table-row sm:p-0">
+                    <td role="cell" className="block sm:table-cell sm:px-4 sm:py-3">
                       <div className="font-medium text-slate-900">
                         {fullName(user)} {isSelf && <span className="text-xs font-normal text-slate-500">(you)</span>}
                       </div>
                       <div className="text-slate-500">{user.email}</div>
                     </td>
-                    <td className="px-4 py-3">
+                    <td role="cell" className="mt-2 inline-block sm:mt-0 sm:table-cell sm:px-4 sm:py-3">
                       {user.is_super_admin ? <Badge tone="slate">Super admin</Badge> : <StatusBadge status={user.status} />}
                     </td>
-                    <td className="px-4 py-3">
+                    <td role="cell" className="mt-2 block sm:mt-0 sm:table-cell sm:px-4 sm:py-3">
                       {user.is_super_admin ? (
                         <span className="text-slate-500">All spaces</span>
                       ) : user.space_members.length ? (
@@ -127,9 +129,11 @@ export default function UsersPage() {
                         <span className="text-slate-500">No spaces</span>
                       )}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-slate-500">{dateFormat.format(new Date(user.created_at))}</td>
-                    <td className="whitespace-nowrap px-4 py-3">
-                      <div className="flex justify-end gap-4">
+                    <td role="cell" className="hidden whitespace-nowrap text-slate-500 sm:table-cell sm:px-4 sm:py-3">
+                      {dateFormat.format(new Date(user.created_at))}
+                    </td>
+                    <td role="cell" className="mt-3 block sm:mt-0 sm:table-cell sm:whitespace-nowrap sm:px-4 sm:py-3">
+                      <div className="flex flex-wrap gap-x-5 gap-y-2 sm:flex-nowrap sm:justify-end sm:gap-4">
                         {user.status === 'invited' && (
                           <button
                             type="button"
