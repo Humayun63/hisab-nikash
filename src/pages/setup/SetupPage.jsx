@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../auth/AuthProvider'
-import { setupSchema } from '../../lib/validation'
+import { setupSchema, setupWithNameSchema } from '../../lib/validation'
 import { authErrorMessage } from '../../lib/authErrors'
 import {
   CURRENCIES,
@@ -27,13 +27,15 @@ export default function SetupPage() {
   const [serverError, setServerError] = useState(null)
   const zones = useMemo(() => timezoneOptions(), [])
   const firstName = user.user_metadata?.first_name
+  // Accounts created in the Supabase dashboard have no name; setup_organization needs one.
+  const needsName = !firstName?.trim() || !user.user_metadata?.last_name?.trim()
 
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm({
-    resolver: zodResolver(setupSchema),
+    resolver: zodResolver(needsName ? setupWithNameSchema : setupSchema),
     mode: 'onTouched',
     defaultValues: {
       orgName: defaultOrgName(firstName),
@@ -41,11 +43,20 @@ export default function SetupPage() {
       weekStart: DEFAULT_WEEK_START,
       spaceName: 'General',
       currencyCode: 'BDT',
+      firstName: '',
+      lastName: '',
     },
   })
 
   async function onSubmit(values) {
     setServerError(null)
+    if (needsName) {
+      const { error } = await supabase.auth.updateUser({ data: { first_name: values.firstName, last_name: values.lastName } })
+      if (error) {
+        setServerError(authErrorMessage(error))
+        return
+      }
+    }
     const currency = currencyByCode(values.currencyCode)
     const { error } = await supabase.rpc('setup_organization', {
       p_org_name: values.orgName,
@@ -76,6 +87,12 @@ export default function SetupPage() {
     >
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
         <Alert>{serverError}</Alert>
+        {needsName && (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <TextField label="First name" autoComplete="given-name" error={errors.firstName?.message} {...register('firstName')} />
+            <TextField label="Last name" autoComplete="family-name" error={errors.lastName?.message} {...register('lastName')} />
+          </div>
+        )}
         <TextField label="Organization name" error={errors.orgName?.message} {...register('orgName')} />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <SelectField label="Timezone" error={errors.timezone?.message} {...register('timezone')}>

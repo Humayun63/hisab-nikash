@@ -53,6 +53,12 @@ export const setupSchema = z.object({
   currencyCode: z.string().regex(/^[A-Z]{3}$/, 'Choose a currency'),
 })
 
+// For accounts created without a name (e.g. in the Supabase dashboard), setup also asks for it.
+export const setupWithNameSchema = setupSchema.extend({
+  firstName: personName('First name'),
+  lastName: personName('Last name'),
+})
+
 // ---------------------------------------------------------------------------
 // User and space management (super admin)
 // ---------------------------------------------------------------------------

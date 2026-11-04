@@ -76,6 +76,7 @@ Assumptions:
 - Password rule: at least 8 characters, including at least one letter and one number.
 - Registering creates an unverified auth user. Supabase sends a verification email, and the user can't log in until they click the link.
 - After the first verified login, a one-step setup asks for the **organization name** (prefilled with "{First name}'s Organization"), **timezone** (defaults to the browser's timezone, or `Asia/Dhaka` if that isn't available), **week start** (default Saturday) and a **first space** with its name and currency. On completion the app creates the organization, sets the user as super admin, and creates the first space.
+- If the account has no first or last name (e.g. an owner created in the Supabase dashboard), setup also asks for them and saves them to the account before creating the organization.
 - Users created by a super admin never use this page.
 
 ### 5.2 Login (all users)

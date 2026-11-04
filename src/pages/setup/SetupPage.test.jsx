@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 
-vi.mock('../../lib/supabaseClient', () => ({ supabase: { rpc: vi.fn() } }))
+vi.mock('../../lib/supabaseClient', () => ({ supabase: { rpc: vi.fn(), auth: { updateUser: vi.fn() } } }))
 vi.mock('../../auth/AuthProvider', () => ({ useAuth: vi.fn() }))
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../auth/AuthProvider'
@@ -14,7 +14,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   refreshProfile.mockResolvedValue()
   useAuth.mockReturnValue({
-    user: { user_metadata: { first_name: 'Ada' } },
+    user: { user_metadata: { first_name: 'Ada', last_name: 'Lovelace' } },
     refreshProfile,
     signOut: vi.fn(),
   })
@@ -47,6 +47,27 @@ describe('SetupPage', () => {
     useAuth.mockReturnValue({ user: { user_metadata: {} }, refreshProfile, signOut: vi.fn() })
     setup()
     expect(screen.getByLabelText('Organization name')).toHaveValue('My Organization')
+  })
+
+  it('asks for the name when the account has none, and saves it before setup', async () => {
+    useAuth.mockReturnValue({ user: { user_metadata: {} }, refreshProfile, signOut: vi.fn() })
+    supabase.auth.updateUser.mockResolvedValue({ error: null })
+    supabase.rpc.mockResolvedValue({ error: null })
+    const user = setup()
+    await user.click(screen.getByRole('button', { name: 'Create organization' }))
+    expect(await screen.findByText('First name is required')).toBeInTheDocument()
+    expect(supabase.rpc).not.toHaveBeenCalled()
+    await user.type(screen.getByLabelText('First name'), 'Kabir')
+    await user.type(screen.getByLabelText('Last name'), 'Hossain')
+    await user.click(screen.getByRole('button', { name: 'Create organization' }))
+    expect(await screen.findByText('HOME MARKER')).toBeInTheDocument()
+    expect(supabase.auth.updateUser).toHaveBeenCalledWith({ data: { first_name: 'Kabir', last_name: 'Hossain' } })
+    expect(supabase.auth.updateUser.mock.invocationCallOrder[0]).toBeLessThan(supabase.rpc.mock.invocationCallOrder[0])
+  })
+
+  it('does not ask for the name when the account has one', () => {
+    setup()
+    expect(screen.queryByLabelText('First name')).not.toBeInTheDocument()
   })
 
   it('submits setup_organization with symbol and numeric week start', async () => {
