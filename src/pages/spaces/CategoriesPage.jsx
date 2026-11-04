@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabaseClient'
 import { useCategories, useCategoryUsage, useSpaceRole } from '../../hooks/useSpaceData'
-import { structureErrorMessage } from '../../lib/structureErrors'
+import { checkWrite, structureErrorMessage } from '../../lib/structureErrors'
 import Alert from '../../components/ui/Alert'
 import Badge from '../../components/ui/Badge'
 import Button from '../../components/ui/Button'
@@ -76,7 +76,7 @@ export default function CategoriesPage() {
   const [action, setAction] = useState(null)
   const [notice, setNotice] = useState(null)
 
-  const usage = usageQuery.data ?? {}
+  const usage = usageQuery.data
   const categories = categoriesQuery.data ?? []
   const close = () => setAction(null)
 
@@ -88,14 +88,11 @@ export default function CategoriesPage() {
       categoryId && queryClient.invalidateQueries({ queryKey: ['category-access', categoryId] }),
     ])
 
-  async function check(promise) {
-    const { error } = await promise
-    if (error) throw new Error(structureErrorMessage(error, 'category'))
-  }
+  const check = (promise) => checkWrite(promise, 'category')
 
   async function save(values) {
     const editing = action.category
-    if (editing) await check(supabase.from('categories').update(values).eq('id', editing.id))
+    if (editing) await check(supabase.from('categories').update(values).eq('id', editing.id).select('id'))
     else await check(supabase.from('categories').insert({ ...values, space_id: spaceId }))
     await refresh(editing?.id)
     setNotice({ tone: 'success', text: editing ? `Saved ${values.name}.` : `Created ${values.name}.` })
@@ -106,7 +103,7 @@ export default function CategoriesPage() {
     const category = action.category
     if (restricted !== category.is_restricted) {
       // Making it public also clears its access list (database trigger).
-      await check(supabase.from('categories').update({ is_restricted: restricted }).eq('id', category.id))
+      await check(supabase.from('categories').update({ is_restricted: restricted }).eq('id', category.id).select('id'))
     }
     if (restricted) {
       const { data: current, error } = await supabase.from('category_access').select('user_id').eq('category_id', category.id)
@@ -129,7 +126,7 @@ export default function CategoriesPage() {
   async function toggleArchive(category) {
     setNotice(null)
     try {
-      await check(supabase.from('categories').update({ archived_at: category.archived_at ? null : new Date().toISOString() }).eq('id', category.id))
+      await check(supabase.from('categories').update({ archived_at: category.archived_at ? null : new Date().toISOString() }).eq('id', category.id).select('id'))
       await refresh(category.id)
       setNotice({
         tone: 'success',
@@ -163,14 +160,14 @@ export default function CategoriesPage() {
         </div>
       )}
 
-      {categoriesQuery.isPending && <Spinner className="mt-6" label="Loading categories…" />}
+      {(categoriesQuery.isPending || usageQuery.isPending) && <Spinner className="mt-6" label="Loading categories…" />}
       {(categoriesQuery.error || usageQuery.error) && (
         <p role="alert" className="mt-6 text-sm text-red-600">
           Could not load categories. Reload the page to try again.
         </p>
       )}
 
-      {categoriesQuery.data && (
+      {categoriesQuery.data && usageQuery.data && (
         <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-2">
           <CategoryList title="Expense" categories={categories.filter((c) => c.type === 'expense')} usage={usage} isSuperAdmin={isSuperAdmin} onAction={onAction} />
           <CategoryList title="Income" categories={categories.filter((c) => c.type === 'income')} usage={usage} isSuperAdmin={isSuperAdmin} onAction={onAction} />
@@ -196,7 +193,7 @@ export default function CategoriesPage() {
         onClose={close}
         onConfirm={async () => {
           const category = action.category
-          await check(supabase.from('categories').delete().eq('id', category.id))
+          await check(supabase.from('categories').delete().eq('id', category.id).select('id'))
           await refresh(category.id)
           setNotice({ tone: 'success', text: `${category.name} was deleted.` })
           close()

@@ -12,6 +12,7 @@ export function useSpaceRole(spaceId) {
   return {
     role: space ? roleInSpace(profile, space) : null,
     isPending: spacesQuery.isPending,
+    error: spacesQuery.error,
   }
 }
 
@@ -47,7 +48,9 @@ export function useFileTotals(spaceId) {
         data.map((row) => {
           const income = Number(row.income)
           const expense = Number(row.expense)
-          return [row.file_id, { income, expense, net: income - expense, entryCount: Number(row.entry_count) }]
+          // Round to cents so float noise can't produce a "-0.00" net; `|| 0` turns -0 into 0.
+          const net = Math.round((income - expense) * 100) / 100 || 0
+          return [row.file_id, { income, expense, net, entryCount: Number(row.entry_count) }]
         }),
       )
     },

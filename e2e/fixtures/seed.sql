@@ -193,3 +193,108 @@ insert into public.categories (id, space_id, name, type, created_by) values
   ('d5000000-0000-4000-8000-000000000001', 'd2000000-0000-4000-8000-000000000001', 'D Cat', 'expense', 'd0000000-0000-4000-8000-000000000001');
 insert into public.entries (space_id, file_id, category_id, amount, entry_date, note, created_by) values
   ('d2000000-0000-4000-8000-000000000001', 'd4000000-0000-4000-8000-000000000001', 'd5000000-0000-4000-8000-000000000001', 42, (now() at time zone 'Asia/Dhaka')::date, 'by dell', 'd0000000-0000-4000-8000-000000000004');
+
+-- ---------------------------------------------------------------------------
+-- Milestone 4: Org E for folder/file/category tests (see ORG_E in ids.js)
+--   E Office — UI tests (e2e/ui/structure.spec.js)
+--   E Data   — API tests (e2e/db/structure.spec.js)
+-- ---------------------------------------------------------------------------
+with u(id, email, first_name, last_name) as (
+  values
+    ('e0000000-0000-4000-8000-000000000001'::uuid, 'esa@e2e.hisab-nikash.test',       'Erin', 'Super'),
+    ('e0000000-0000-4000-8000-000000000002'::uuid, 'eadmin@e2e.hisab-nikash.test',    'Abe',  'Admin'),
+    ('e0000000-0000-4000-8000-000000000003'::uuid, 'eeditor@e2e.hisab-nikash.test',   'Ed',   'Editor'),
+    ('e0000000-0000-4000-8000-000000000004'::uuid, 'eviewer@e2e.hisab-nikash.test',   'Vera', 'Viewer'),
+    ('e0000000-0000-4000-8000-000000000005'::uuid, 'egranted@e2e.hisab-nikash.test',  'Gus',  'Granted'),
+    ('e0000000-0000-4000-8000-000000000006'::uuid, 'eoutsider@e2e.hisab-nikash.test', 'Olly', 'Outside')
+),
+ins as (
+  insert into auth.users (
+    instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
+    raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+    confirmation_token, recovery_token, email_change_token_new, email_change
+  )
+  select
+    '00000000-0000-0000-0000-000000000000', u.id, 'authenticated', 'authenticated', u.email,
+    extensions.crypt('E2e-Test-Pass-1!', extensions.gen_salt('bf')), now(),
+    '{"provider":"email","providers":["email"]}',
+    jsonb_build_object('first_name', u.first_name, 'last_name', u.last_name),
+    now(), now(), '', '', '', ''
+  from u
+  returning id, email
+)
+insert into auth.identities (id, user_id, provider_id, provider, identity_data, last_sign_in_at, created_at, updated_at)
+select gen_random_uuid(), ins.id, ins.id::text, 'email',
+       jsonb_build_object('sub', ins.id::text, 'email', ins.email, 'email_verified', true),
+       now(), now(), now()
+from ins;
+
+insert into public.organizations (id, name, timezone, week_start, owner_id) values
+  ('e1000000-0000-4000-8000-000000000001', 'E2E Org E', 'Asia/Dhaka', 6, 'e0000000-0000-4000-8000-000000000001');
+
+insert into public.profiles (id, org_id, first_name, last_name, email, is_super_admin, status, accepted_at) values
+  ('e0000000-0000-4000-8000-000000000001', 'e1000000-0000-4000-8000-000000000001', 'Erin', 'Super',   'esa@e2e.hisab-nikash.test',       true,  'active', now()),
+  ('e0000000-0000-4000-8000-000000000002', 'e1000000-0000-4000-8000-000000000001', 'Abe',  'Admin',   'eadmin@e2e.hisab-nikash.test',    false, 'active', now()),
+  ('e0000000-0000-4000-8000-000000000003', 'e1000000-0000-4000-8000-000000000001', 'Ed',   'Editor',  'eeditor@e2e.hisab-nikash.test',   false, 'active', now()),
+  ('e0000000-0000-4000-8000-000000000004', 'e1000000-0000-4000-8000-000000000001', 'Vera', 'Viewer',  'eviewer@e2e.hisab-nikash.test',   false, 'active', now()),
+  ('e0000000-0000-4000-8000-000000000005', 'e1000000-0000-4000-8000-000000000001', 'Gus',  'Granted', 'egranted@e2e.hisab-nikash.test',  false, 'active', now()),
+  ('e0000000-0000-4000-8000-000000000006', 'e1000000-0000-4000-8000-000000000001', 'Olly', 'Outside', 'eoutsider@e2e.hisab-nikash.test', false, 'active', now());
+
+insert into public.spaces (id, org_id, name, currency_code, currency_symbol, created_by) values
+  ('e2000000-0000-4000-8000-000000000001', 'e1000000-0000-4000-8000-000000000001', 'E Office', 'BDT', '৳', 'e0000000-0000-4000-8000-000000000001'),
+  ('e2000000-0000-4000-8000-000000000002', 'e1000000-0000-4000-8000-000000000001', 'E Data',   'USD', '$', 'e0000000-0000-4000-8000-000000000001');
+
+insert into public.space_members (space_id, user_id, role)
+select s.id::uuid, m.user_id::uuid, m.role
+from (values ('e2000000-0000-4000-8000-000000000001'), ('e2000000-0000-4000-8000-000000000002')) as s(id)
+cross join (values
+  ('e0000000-0000-4000-8000-000000000002', 'admin'),
+  ('e0000000-0000-4000-8000-000000000003', 'editor'),
+  ('e0000000-0000-4000-8000-000000000004', 'viewer'),
+  ('e0000000-0000-4000-8000-000000000005', 'viewer')
+) as m(user_id, role);
+
+insert into public.folders (id, space_id, name, created_by) values
+  ('e3000000-0000-4000-8000-000000000001', 'e2000000-0000-4000-8000-000000000001', 'Operations',   'e0000000-0000-4000-8000-000000000001'),
+  ('e3000000-0000-4000-8000-000000000002', 'e2000000-0000-4000-8000-000000000001', 'Projects',     'e0000000-0000-4000-8000-000000000001'),
+  ('e3000000-0000-4000-8000-000000000003', 'e2000000-0000-4000-8000-000000000001', 'Empty Folder', 'e0000000-0000-4000-8000-000000000001'),
+  ('e3000000-0000-4000-8000-000000000011', 'e2000000-0000-4000-8000-000000000002', 'Data Folder',  'e0000000-0000-4000-8000-000000000001');
+
+insert into public.files (id, folder_id, space_id, name, created_by) values
+  ('e4000000-0000-4000-8000-000000000001', 'e3000000-0000-4000-8000-000000000001', 'e2000000-0000-4000-8000-000000000001', 'Daily Costs', 'e0000000-0000-4000-8000-000000000001'),
+  ('e4000000-0000-4000-8000-000000000002', 'e3000000-0000-4000-8000-000000000001', 'e2000000-0000-4000-8000-000000000001', 'Payroll',     'e0000000-0000-4000-8000-000000000001'),
+  ('e4000000-0000-4000-8000-000000000003', 'e3000000-0000-4000-8000-000000000002', 'e2000000-0000-4000-8000-000000000001', 'Website',     'e0000000-0000-4000-8000-000000000001'),
+  ('e4000000-0000-4000-8000-000000000011', 'e3000000-0000-4000-8000-000000000011', 'e2000000-0000-4000-8000-000000000002', 'Data File A', 'e0000000-0000-4000-8000-000000000001'),
+  ('e4000000-0000-4000-8000-000000000012', 'e3000000-0000-4000-8000-000000000011', 'e2000000-0000-4000-8000-000000000002', 'Data File B', 'e0000000-0000-4000-8000-000000000001');
+
+insert into public.categories (id, space_id, name, type, color, is_restricted, created_by) values
+  ('e5000000-0000-4000-8000-000000000001', 'e2000000-0000-4000-8000-000000000001', 'Rent',         'expense', '#ef4444', false, 'e0000000-0000-4000-8000-000000000001'),
+  ('e5000000-0000-4000-8000-000000000002', 'e2000000-0000-4000-8000-000000000001', 'Sales',        'income',  '#22c55e', false, 'e0000000-0000-4000-8000-000000000001'),
+  ('e5000000-0000-4000-8000-000000000003', 'e2000000-0000-4000-8000-000000000001', 'Private',      'expense', '#a855f7', true,  'e0000000-0000-4000-8000-000000000001'),
+  ('e5000000-0000-4000-8000-000000000004', 'e2000000-0000-4000-8000-000000000001', 'Legacy',       'expense', '#64748b', false, 'e0000000-0000-4000-8000-000000000001'),
+  ('e5000000-0000-4000-8000-000000000005', 'e2000000-0000-4000-8000-000000000001', 'Unused',       'income',  '#0ea5e9', false, 'e0000000-0000-4000-8000-000000000001'),
+  ('e5000000-0000-4000-8000-000000000011', 'e2000000-0000-4000-8000-000000000002', 'D Income',     'income',  '#22c55e', false, 'e0000000-0000-4000-8000-000000000001'),
+  ('e5000000-0000-4000-8000-000000000012', 'e2000000-0000-4000-8000-000000000002', 'D Expense',    'expense', '#ef4444', false, 'e0000000-0000-4000-8000-000000000001'),
+  ('e5000000-0000-4000-8000-000000000013', 'e2000000-0000-4000-8000-000000000002', 'D Restricted', 'expense', '#a855f7', true,  'e0000000-0000-4000-8000-000000000001'),
+  ('e5000000-0000-4000-8000-000000000014', 'e2000000-0000-4000-8000-000000000002', 'D Archived',   'expense', '#64748b', false, 'e0000000-0000-4000-8000-000000000001');
+
+insert into public.category_access (category_id, user_id) values
+  ('e5000000-0000-4000-8000-000000000003', 'e0000000-0000-4000-8000-000000000005'),
+  ('e5000000-0000-4000-8000-000000000013', 'e0000000-0000-4000-8000-000000000005');
+
+insert into public.entries (space_id, file_id, category_id, amount, entry_date, note, created_by)
+select v.space_id::uuid, v.file_id::uuid, v.category_id::uuid, v.amount, (now() at time zone 'Asia/Dhaka')::date, v.note,
+       'e0000000-0000-4000-8000-000000000001'
+from (values
+  ('e2000000-0000-4000-8000-000000000001', 'e4000000-0000-4000-8000-000000000001', 'e5000000-0000-4000-8000-000000000002', 5000.00, 'sales'),
+  ('e2000000-0000-4000-8000-000000000001', 'e4000000-0000-4000-8000-000000000001', 'e5000000-0000-4000-8000-000000000001', 1200.00, 'rent'),
+  ('e2000000-0000-4000-8000-000000000001', 'e4000000-0000-4000-8000-000000000001', 'e5000000-0000-4000-8000-000000000003',  300.00, 'private'),
+  ('e2000000-0000-4000-8000-000000000001', 'e4000000-0000-4000-8000-000000000002', 'e5000000-0000-4000-8000-000000000002', 1000.00, 'payroll sales'),
+  ('e2000000-0000-4000-8000-000000000002', 'e4000000-0000-4000-8000-000000000011', 'e5000000-0000-4000-8000-000000000011', 1000.00, 'd income'),
+  ('e2000000-0000-4000-8000-000000000002', 'e4000000-0000-4000-8000-000000000011', 'e5000000-0000-4000-8000-000000000012',  400.00, 'd expense'),
+  ('e2000000-0000-4000-8000-000000000002', 'e4000000-0000-4000-8000-000000000011', 'e5000000-0000-4000-8000-000000000013',  250.00, 'd restricted'),
+  ('e2000000-0000-4000-8000-000000000002', 'e4000000-0000-4000-8000-000000000011', 'e5000000-0000-4000-8000-000000000014',   50.00, 'd archived')
+) as v(space_id, file_id, category_id, amount, note);
+
+update public.categories set archived_at = now()
+where id in ('e5000000-0000-4000-8000-000000000004', 'e5000000-0000-4000-8000-000000000014');

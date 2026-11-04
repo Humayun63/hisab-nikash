@@ -6,7 +6,7 @@ import { useSpace } from '../../hooks/useOrgData'
 import { useFileTotals, useFolders, useSpaceRole } from '../../hooks/useSpaceData'
 import { hasRole, ROLE_LABELS } from '../../lib/roles'
 import { formatMoney } from '../../lib/format'
-import { structureErrorMessage } from '../../lib/structureErrors'
+import { checkWrite } from '../../lib/structureErrors'
 import ConfirmDialog from '../ui/ConfirmDialog'
 import NameModal from '../ui/NameModal'
 import Spinner from '../ui/Spinner'
@@ -55,63 +55,70 @@ function FolderTree({ space, canManage, onAction }) {
   }
 
   return (
-    <ul className="space-y-1">
-      {foldersQuery.data.map((folder) => {
-        const open = !collapsed[folder.id]
-        return (
-          <li key={folder.id}>
-            <div className="group flex items-center gap-1 pr-1">
-              <button
-                type="button"
-                onClick={() => setCollapsed((c) => ({ ...c, [folder.id]: open }))}
-                aria-expanded={open}
-                className="flex min-w-0 flex-1 items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-sm font-medium text-slate-800 hover:bg-slate-100"
-              >
-                <svg className={`h-3 w-3 shrink-0 text-slate-400 transition-transform ${open ? 'rotate-90' : ''}`} viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                  <path d="M7.2 14.8a.75.75 0 0 1 0-1.06L10.94 10 7.2 6.26a.75.75 0 1 1 1.06-1.06l4.27 4.27a.75.75 0 0 1 0 1.06L8.26 14.8a.75.75 0 0 1-1.06 0Z" />
-                </svg>
-                <span className="truncate">{folder.name}</span>
-              </button>
-              {canManage && (
-                <>
-                  <IconButton label={`New file in ${folder.name}`} onClick={() => onAction({ type: 'new-file', folder })}>
-                    {PLUS}
-                  </IconButton>
-                  <IconButton label={`Rename folder ${folder.name}`} onClick={() => onAction({ type: 'rename-folder', folder })}>
-                    {PENCIL}
-                  </IconButton>
-                  <IconButton label={`Delete folder ${folder.name}`} onClick={() => onAction({ type: 'delete-folder', folder })}>
-                    {TRASH}
-                  </IconButton>
-                </>
+    <>
+      <ul className="space-y-1">
+        {foldersQuery.data.map((folder) => {
+          const open = !collapsed[folder.id]
+          return (
+            <li key={folder.id}>
+              <div className="group flex items-center gap-1 pr-1">
+                <button
+                  type="button"
+                  onClick={() => setCollapsed((c) => ({ ...c, [folder.id]: open }))}
+                  aria-expanded={open}
+                  className="flex min-w-0 flex-1 items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-sm font-medium text-slate-800 hover:bg-slate-100"
+                >
+                  <svg className={`h-3 w-3 shrink-0 text-slate-400 transition-transform ${open ? 'rotate-90' : ''}`} viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path d="M7.2 14.8a.75.75 0 0 1 0-1.06L10.94 10 7.2 6.26a.75.75 0 1 1 1.06-1.06l4.27 4.27a.75.75 0 0 1 0 1.06L8.26 14.8a.75.75 0 0 1-1.06 0Z" />
+                  </svg>
+                  <span className="truncate">{folder.name}</span>
+                </button>
+                {canManage && (
+                  <>
+                    <IconButton label={`New file in ${folder.name}`} onClick={() => onAction({ type: 'new-file', folder })}>
+                      {PLUS}
+                    </IconButton>
+                    <IconButton label={`Rename folder ${folder.name}`} onClick={() => onAction({ type: 'rename-folder', folder })}>
+                      {PENCIL}
+                    </IconButton>
+                    <IconButton label={`Delete folder ${folder.name}`} onClick={() => onAction({ type: 'delete-folder', folder })}>
+                      {TRASH}
+                    </IconButton>
+                  </>
+                )}
+              </div>
+              {open && (
+                <ul className="ml-5 mt-0.5 space-y-0.5 border-l border-slate-200 pl-2">
+                  {folder.files.length === 0 && <li className="px-3 py-1 text-xs text-slate-500">No files</li>}
+                  {folder.files.map((file) => {
+                    const totals = totalsQuery.data?.[file.id]
+                    return (
+                      <li key={file.id}>
+                        <NavLink to={`/spaces/${space.id}/files/${file.id}`} className={sideLinkClass}>
+                          <span className="flex items-center justify-between gap-2">
+                            <span className="truncate">{file.name}</span>
+                            {totals && (
+                              <span className={`shrink-0 text-xs ${totals.net < 0 ? 'text-red-600' : 'text-slate-500'}`}>
+                                {formatMoney(totals.net, space.currency_code, space.currency_symbol)}
+                              </span>
+                            )}
+                          </span>
+                        </NavLink>
+                      </li>
+                    )
+                  })}
+                </ul>
               )}
-            </div>
-            {open && (
-              <ul className="ml-5 mt-0.5 space-y-0.5 border-l border-slate-200 pl-2">
-                {folder.files.length === 0 && <li className="px-3 py-1 text-xs text-slate-500">No files</li>}
-                {folder.files.map((file) => {
-                  const totals = totalsQuery.data?.[file.id]
-                  return (
-                    <li key={file.id}>
-                      <NavLink to={`/spaces/${space.id}/files/${file.id}`} className={sideLinkClass}>
-                        <span className="flex items-center justify-between gap-2">
-                          <span className="truncate">{file.name}</span>
-                          {totals && (
-                            <span className={`shrink-0 text-xs ${totals.net < 0 ? 'text-red-600' : 'text-slate-500'}`}>
-                              {formatMoney(totals.net, space.currency_code, space.currency_symbol)}
-                            </span>
-                          )}
-                        </span>
-                      </NavLink>
-                    </li>
-                  )
-                })}
-              </ul>
-            )}
-          </li>
-        )
-      })}
-    </ul>
+            </li>
+          )
+        })}
+      </ul>
+      {totalsQuery.error && (
+        <p role="alert" className="mt-2 px-3 text-xs text-red-600">
+          Could not load file totals.
+        </p>
+      )}
+    </>
   )
 }
 
@@ -159,8 +166,7 @@ export default function SpaceLayout() {
     ])
 
   async function run(promise, thing) {
-    const { data, error } = await promise
-    if (error) throw new Error(structureErrorMessage(error, thing))
+    const data = await checkWrite(promise, thing)
     await refresh()
     setAction(null)
     return data
@@ -244,7 +250,7 @@ export default function SpaceLayout() {
         initialName={action?.folder?.name}
         submitLabel="Save"
         onClose={close}
-        onSubmit={(name) => run(supabase.from('folders').update({ name }).eq('id', action.folder.id), 'folder')}
+        onSubmit={(name) => run(supabase.from('folders').update({ name }).eq('id', action.folder.id).select('id'), 'folder')}
       />
       <NameModal
         open={action?.type === 'new-file'}
@@ -269,7 +275,7 @@ export default function SpaceLayout() {
         onConfirm={async () => {
           const folder = action.folder
           const viewingInside = fileMatch && folder.files.some((f) => f.id === fileMatch.params.fileId)
-          await run(supabase.from('folders').delete().eq('id', folder.id), 'folder')
+          await run(supabase.from('folders').delete().eq('id', folder.id).select('id'), 'folder')
           if (viewingInside) navigate(`/spaces/${space.id}`, { replace: true })
         }}
       />

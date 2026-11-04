@@ -35,9 +35,10 @@ test.describe('access control (editor)', () => {
 
     await page.getByLabel('Space', { exact: true }).selectOption({ label: 'C Office' })
     await expect(page).toHaveURL(new RegExp(`/spaces/${office.id}$`))
-    await expect(page.getByRole('heading', { name: 'C Office' })).toBeVisible()
-    await expect(page.getByText('Your role: Editor')).toBeVisible()
-    await expect(page.getByRole('link', { name: 'Space settings' })).toHaveCount(0)
+    const sidebar = page.getByRole('complementary', { name: 'C Office navigation' })
+    await expect(sidebar).toContainText('· Editor')
+    await expect(page.getByRole('heading', { name: 'Overview' })).toBeVisible()
+    await expect(sidebar.getByRole('link', { name: 'Settings' })).toHaveCount(0)
   })
 })
 
@@ -73,7 +74,7 @@ test.describe('users page', () => {
 
     await page.getByLabel('Space', { exact: true }).selectOption({ label: 'C Projects' })
     await expect(page).toHaveURL(new RegExp(`/spaces/${projects.id}$`))
-    await expect(page.getByText('Your role: Super admin')).toBeVisible()
+    await expect(page.getByRole('complementary', { name: 'C Projects navigation' })).toContainText('· Super admin')
     await page.getByLabel('Space', { exact: true }).selectOption({ label: 'All spaces' })
     await expect(page).toHaveURL(/localhost:5173\/$/)
     await expect(page.getByRole('heading', { name: 'Welcome, Cara' })).toBeVisible()

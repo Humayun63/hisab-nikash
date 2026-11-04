@@ -11,7 +11,18 @@ import Button from '../../components/ui/Button'
 import Alert from '../../components/ui/Alert'
 import Spinner from '../../components/ui/Spinner'
 
-export const CATEGORY_COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#3b82f6', '#6366f1', '#a855f7', '#ec4899', '#64748b']
+const CATEGORY_COLORS = [
+  { value: '#ef4444', name: 'Red' },
+  { value: '#f97316', name: 'Orange' },
+  { value: '#eab308', name: 'Yellow' },
+  { value: '#22c55e', name: 'Green' },
+  { value: '#14b8a6', name: 'Teal' },
+  { value: '#3b82f6', name: 'Blue' },
+  { value: '#6366f1', name: 'Indigo' },
+  { value: '#a855f7', name: 'Purple' },
+  { value: '#ec4899', name: 'Pink' },
+  { value: '#64748b', name: 'Slate' },
+]
 
 function FormButtons({ onCancel, submitLabel, loading }) {
   return (
@@ -40,7 +51,7 @@ export function CategoryFormModal({ category, hasEntries, onSubmit, onClose }) {
     defaultValues: {
       name: category?.name ?? '',
       type: category?.type ?? 'expense',
-      color: category?.color ?? CATEGORY_COLORS[0],
+      color: category?.color ?? CATEGORY_COLORS[0].value,
     },
   })
   const color = watch('color')
@@ -84,15 +95,16 @@ export function CategoryFormModal({ category, hasEntries, onSubmit, onClose }) {
         <fieldset>
           <legend className="mb-1.5 text-sm font-medium text-slate-700">Color</legend>
           <div className="flex flex-wrap items-center gap-2">
-            {CATEGORY_COLORS.map((c) => (
+            {CATEGORY_COLORS.map(({ value, name }) => (
               <button
-                key={c}
+                key={value}
                 type="button"
-                onClick={() => setValue('color', c, { shouldValidate: true })}
-                aria-label={`Color ${c}`}
-                aria-pressed={color.toLowerCase() === c}
-                className={`h-7 w-7 rounded-full ring-offset-2 ${color.toLowerCase() === c ? 'ring-2 ring-slate-900' : ''}`}
-                style={{ backgroundColor: c }}
+                onClick={() => setValue('color', value, { shouldValidate: true })}
+                aria-label={name}
+                title={name}
+                aria-pressed={color.toLowerCase() === value}
+                className={`h-7 w-7 rounded-full ring-offset-2 ${color.toLowerCase() === value ? 'ring-2 ring-slate-900' : ''}`}
+                style={{ backgroundColor: value }}
               />
             ))}
             <label className="ml-2 flex items-center gap-2 text-sm text-slate-600">

@@ -6,7 +6,7 @@ import { useSpace } from '../../hooks/useOrgData'
 import { useFileTotals, useFolders, useSpaceRole } from '../../hooks/useSpaceData'
 import { hasRole } from '../../lib/roles'
 import { formatMoney } from '../../lib/format'
-import { structureErrorMessage } from '../../lib/structureErrors'
+import { checkWrite } from '../../lib/structureErrors'
 import ConfirmDialog from '../../components/ui/ConfirmDialog'
 import NameModal from '../../components/ui/NameModal'
 import Spinner from '../../components/ui/Spinner'
@@ -55,8 +55,9 @@ export default function FilePage() {
     )
   }
 
-  const totals = totalsQuery.data?.[file.id] ?? { income: 0, expense: 0, net: 0, entryCount: 0 }
-  const money = (n) => formatMoney(n, space.currency_code, space.currency_symbol)
+  // Files without visible entries have no row; zeros only once the totals have loaded.
+  const totals = totalsQuery.data && (totalsQuery.data[file.id] ?? { income: 0, expense: 0, net: 0, entryCount: 0 })
+  const money = (n) => (totals ? formatMoney(n, space.currency_code, space.currency_symbol) : '…')
   const canManage = hasRole(role, 'admin')
   const refresh = () =>
     Promise.all([
@@ -84,13 +85,21 @@ export default function FilePage() {
       </div>
 
       <dl className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3" aria-label="File totals">
-        <Total label="Income" value={money(totals.income)} tone="text-emerald-700" />
-        <Total label="Expense" value={money(totals.expense)} tone="text-red-700" />
-        <Total label="Net" value={money(totals.net)} tone={totals.net < 0 ? 'text-red-700' : 'text-slate-900'} />
+        <Total label="Income" value={money(totals?.income)} tone="text-emerald-700" />
+        <Total label="Expense" value={money(totals?.expense)} tone="text-red-700" />
+        <Total label="Net" value={money(totals?.net)} tone={totals?.net < 0 ? 'text-red-700' : 'text-slate-900'} />
       </dl>
-      <p className="mt-2 text-xs text-slate-500">
-        {totals.entryCount} {totals.entryCount === 1 ? 'entry' : 'entries'}. Totals only include categories you can see.
-      </p>
+      {totalsQuery.error ? (
+        <p role="alert" className="mt-2 text-sm text-red-600">
+          Could not load the totals. Reload the page to try again.
+        </p>
+      ) : (
+        totals && (
+          <p className="mt-2 text-xs text-slate-500">
+            {totals.entryCount} {totals.entryCount === 1 ? 'entry' : 'entries'}. Totals only include categories you can see.
+          </p>
+        )
+      )}
 
       <div className="mt-8 rounded-xl border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-600">
         Adding and listing entries in this file is coming in the next milestone.
@@ -104,8 +113,7 @@ export default function FilePage() {
         submitLabel="Save"
         onClose={() => setAction(null)}
         onSubmit={async (name) => {
-          const { error } = await supabase.from('files').update({ name }).eq('id', file.id)
-          if (error) throw new Error(structureErrorMessage(error, 'file'))
+          await checkWrite(supabase.from('files').update({ name }).eq('id', file.id).select('id'), 'file')
           await refresh()
           setAction(null)
         }}
@@ -117,8 +125,7 @@ export default function FilePage() {
         confirmLabel="Delete file"
         onClose={() => setAction(null)}
         onConfirm={async () => {
-          const { error } = await supabase.from('files').delete().eq('id', file.id)
-          if (error) throw new Error(structureErrorMessage(error, 'file'))
+          await checkWrite(supabase.from('files').delete().eq('id', file.id).select('id'), 'file')
           navigate(`/spaces/${spaceId}`, { replace: true })
           await refresh()
         }}

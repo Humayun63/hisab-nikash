@@ -7,8 +7,15 @@ import Spinner from '../components/ui/Spinner'
 // space overview. (The database enforces the same rules.)
 export default function RequireSpaceRole({ min }) {
   const { spaceId } = useParams()
-  const { role, isPending } = useSpaceRole(spaceId)
+  const { role, isPending, error } = useSpaceRole(spaceId)
   if (isPending) return <Spinner label="Loading…" />
+  if (error) {
+    return (
+      <p role="alert" className="text-sm text-red-600">
+        Could not load your access to this space. Reload the page to try again.
+      </p>
+    )
+  }
   if (!hasRole(role, min)) return <Navigate to={`/spaces/${spaceId}`} replace />
   return <Outlet />
 }
