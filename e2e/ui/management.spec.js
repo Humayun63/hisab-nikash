@@ -9,7 +9,7 @@ async function setNewPassword(page, password) {
   await page.getByLabel('New password', { exact: true }).fill(password)
   await page.getByLabel('Confirm new password').fill(password)
   await page.getByRole('button', { name: 'Set password and continue' }).click()
-  await expect(page).toHaveURL(/localhost:5173\/$/)
+  await expect(page).toHaveURL(/localhost:\d+\/$/)
 }
 
 // Tests in this file run in order in one worker (they share Org C).
@@ -22,22 +22,24 @@ test.describe('access control (editor)', () => {
     await expect(nav.getByRole('link', { name: 'Users' })).toHaveCount(0)
     await expect(nav.getByRole('link', { name: 'Spaces' })).toHaveCount(0)
 
-    for (const path of ['/settings/users', '/settings/spaces', `/spaces/${office.id}/settings`]) {
-      await page.goto(path)
-      await expect(page).toHaveURL(/localhost:5173\/$/)
-      await expect(page.getByRole('heading', { name: 'Welcome, Max' })).toBeVisible()
-    }
-
+    // Read the spaces list before visiting a space: after that, "/" opens the last-used space.
     const cards = page.getByRole('region', { name: 'Your spaces' }).or(page.locator('#spaces-heading + *, section ul'))
     await expect(page.getByRole('link', { name: /C Office/ })).toContainText('Editor')
     await expect(page.getByRole('link', { name: /C Projects/ })).toHaveCount(0)
     await expect(cards.first()).toBeVisible()
 
+    for (const path of ['/settings/users', '/settings/spaces', `/spaces/${office.id}/settings`]) {
+      await page.goto(path)
+      // Home ("/") opens the last-used space's dashboard once a space was visited (SPEC §5.8).
+      await expect(page).not.toHaveURL(/\/settings/)
+      await expect(page.getByRole('heading', { name: /^(Welcome, Max|Dashboard)$/ })).toBeVisible()
+    }
+
     await page.getByLabel('Space', { exact: true }).selectOption({ label: 'C Office' })
-    await expect(page).toHaveURL(new RegExp(`/spaces/${office.id}$`))
+    await expect(page).toHaveURL(new RegExp(`/spaces/${office.id}/dashboard$`))
     const sidebar = page.getByRole('complementary', { name: 'C Office navigation' })
     await expect(sidebar).toContainText('· Editor')
-    await expect(page.getByRole('heading', { name: 'Overview' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
     await expect(sidebar.getByRole('link', { name: 'Settings' })).toHaveCount(0)
   })
 })
@@ -73,10 +75,10 @@ test.describe('users page', () => {
     expect(options).not.toContain('Office')
 
     await page.getByLabel('Space', { exact: true }).selectOption({ label: 'C Projects' })
-    await expect(page).toHaveURL(new RegExp(`/spaces/${projects.id}$`))
+    await expect(page).toHaveURL(new RegExp(`/spaces/${projects.id}/dashboard$`))
     await expect(page.getByRole('complementary', { name: 'C Projects navigation' })).toContainText('· Super admin')
     await page.getByLabel('Space', { exact: true }).selectOption({ label: 'All spaces' })
-    await expect(page).toHaveURL(/localhost:5173\/$/)
+    await expect(page).toHaveURL(/localhost:\d+\/$/)
     await expect(page.getByRole('heading', { name: 'Welcome, Cara' })).toBeVisible()
   })
 })
@@ -177,7 +179,7 @@ test.describe('edit user', () => {
     await signOut(page)
     await fillLogin(page, ORG_C.toggle.email, TEST_PASSWORD)
     await expect(page.getByRole('heading', { name: 'Welcome, Dorothea' })).toBeVisible()
-    await expect(page).toHaveURL(/localhost:5173\/$/)
+    await expect(page).toHaveURL(/localhost:\d+\/$/)
   })
 
   test('setting a new password requires a change at next sign-in', async ({ page }) => {

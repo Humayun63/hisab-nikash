@@ -1,18 +1,21 @@
+import { useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { useSpaces } from '../hooks/useOrgData'
 import { ROLE_LABELS, roleInSpace } from '../lib/roles'
 import Spinner from '../components/ui/Spinner'
-import { readLastSpace } from '../lib/lastSpace'
+import { readLastSpace, takeLanding } from '../lib/lastSpace'
 import useDocumentTitle from '../components/ui/useDocumentTitle'
 
-// Landing page: opens the dashboard of the last-used space, or lists the spaces the user can open.
+// Landing page: on the first visit in a tab it opens the last-used space's dashboard; otherwise it
+// lists the spaces the user can open.
 export default function HomePage() {
   const { profile } = useAuth()
   const spacesQuery = useSpaces()
   useDocumentTitle('Home')
 
-  const lastSpaceId = readLastSpace()
+  // Decided once on mount: the first visit in this tab may jump to the last space.
+  const [lastSpaceId] = useState(() => (takeLanding() ? readLastSpace() : null))
   if (lastSpaceId && spacesQuery.data?.some((s) => s.id === lastSpaceId)) {
     return <Navigate to={`/spaces/${lastSpaceId}/dashboard`} replace />
   }

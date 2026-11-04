@@ -176,7 +176,7 @@ Implementation notes (milestone 6):
 - Category table rows link to `/spaces/:spaceId/entries` filtered by that category, the period and the scope (file or folder).
 - *Recent entries* are the latest 10 in the scope, whatever the period.
 - Charts are hidden from screen readers; the category tables and a *Show as a table* view of the trend carry the same numbers as text.
-- The last space opened is remembered per browser (`localStorage`); `/` redirects to its dashboard, or lists the spaces if there is none.
+- The last space opened is remembered per browser (`localStorage`). The first visit to `/` in a tab (e.g. after login) redirects to its dashboard; later visits (Home, *All spaces*) list the spaces.
 
 ### 5.9 Organization settings (super admin)
 - Organization name, timezone, week start day

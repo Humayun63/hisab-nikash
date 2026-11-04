@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { openedFromRecoveryLink, supabase } from '../lib/supabaseClient'
+import { resetLanding } from '../lib/lastSpace'
 
 const AuthContext = createContext(null)
 
@@ -59,6 +60,7 @@ export function AuthProvider({ children }) {
       if (event === 'SIGNED_OUT') {
         writeRecoveryFlag(false)
         setRecoveryMode(false)
+        resetLanding()
         // Drop everything cached for the previous user (spaces, users…), not just the profile.
         queryClient.clear()
       }

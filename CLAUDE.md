@@ -2,17 +2,15 @@
 
 Product and technical spec: [SPEC.md](SPEC.md). The milestones are listed in §12.
 
-## ⚠️ Next step: merge milestone 4 after a PASS, then continue milestone 5
+## ⚠️ Status: milestones 4–6 merged into `main` without the full verification (2026-11-04)
 
-**Milestone 4** (folders, files, categories; SPEC.md §5.5–5.6) is built, tested and committed on `milestone-4`. It is **not yet merged**.
-- Tests: 430 unit tests, plus `e2e/ui/structure.spec.js` (19) and `e2e/db/structure.spec.js` (40). The seeded Org E is described in `e2e/fixtures/ids.js`.
-- Remaining: a final verification PASS (two full e2e runs plus the browser check). Then merge `milestone-4` into `main` with `--no-ff` and push.
+To deliver the MVP quickly, the project owner chose to skip the final verification PASS and the DB/API test and review subagents for milestones 4–6, and to use Haiku subagents for testing.
+- Unit tests: 533, all passing. Build and lint are clean.
+- **UI tests for milestones 5–6 were not finished or run.** These files are unverified and may fail: `e2e/ui/entries.spec.js`, `e2e/ui/dashboard.spec.js` and `e2e/ui/entries-helpers.js`, plus the updates to `structure.spec.js` and `management.spec.js` (the Overview page became the Dashboard).
+- No `e2e/db/entries.spec.js` yet. Org F (`ORG_F` in `e2e/fixtures/ids.js`) has the "F Data" space ready for it.
+- To do before production: run `npm run test:e2e`, fix the failures, and do the browser check at 390px and desktop widths.
 
-**Sign-in rate limit:** the full e2e suite now makes about 200 sign-ins, the hosted limit per 5 minutes (`sign_in_sign_ups` in `supabase/config.toml`).
-- Leave at least 6 idle minutes before each full run, or runs fail with "Request rate limit reached".
-- Raising the limit needs the project owner's approval; it was blocked on 2026-11-04.
-
-**Milestone 5** (entries) was started on branch `milestone-5`, branched from `milestone-4`, in the worktree `../hisab-nikash-m5`. Rebase or merge it onto `main` once milestone 4 is merged.
+**Sign-in rate limit:** the full e2e suite makes about 200 sign-ins, the hosted limit per 5 minutes (`sign_in_sign_ups` in `supabase/config.toml`). Leave at least 6 idle minutes before each full run. `E2E_PORT=5174` runs Playwright against a second checkout when another dev server already uses 5173.
 
 Watch out for these flaky tests:
 - `e2e/ui/management.spec.js` "setting a new password requires a change at next sign-in" failed once under load and passed on rerun.
