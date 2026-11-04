@@ -2,31 +2,6 @@
 
 Product and technical spec: [SPEC.md](SPEC.md). The milestones are listed in §12.
 
-## ⚠️ Next step: do this BEFORE starting milestone 4
-
-Milestone 3 (user & space management) is merged into `main`, but its final verification was only **partial**:
-- Build, lint, unit tests (274) and the full Playwright suite (98) all passed twice.
-- The exploratory browser check (workflow step 4) was not done.
-
-When work resumes, finish this check first. Only then start milestone 4.
-
-1. Seed the test data: `npx supabase db query --remote --yes -f e2e/fixtures/cleanup.sql < /dev/null`, then the same with `e2e/fixtures/seed.sql`. This is allowed by the standing permission below.
-2. Make sure the dev server is running (`npm run dev`). Use the Claude in Chrome extension if it's connected, otherwise a Playwright Chromium script. Check at **phone (390×844)** and **desktop (1280×800)** sizes, and look at the screenshots.
-   - **As `uisa@e2e.hisab-nikash.test` (Org C super admin; password in `e2e/fixtures/ids.js`):**
-     - Pages: Home, Users, Spaces, and a space's settings page.
-     - Add user modal: fill it and use Generate password. Create at most one user, with an `@e2e.hisab-nikash.test` email.
-     - That user's Edit modal.
-     - The delete-space confirm dialog (Cancel it).
-   - **As `uimember@e2e.hisab-nikash.test` (editor):** the Users and Spaces links are absent, and `/settings/users` redirects to `/`.
-   - **Look for:**
-     - Horizontal page scroll (`scrollWidth > innerWidth`), clipped or overlapping elements, and whether modals are usable on a phone.
-     - Visible keyboard focus when tabbing through the Add user modal.
-     - Focus returning to the "Add user" button after closing the modal with Escape.
-     - Console or page errors. A 400 from a deliberately wrong password is expected.
-3. Clean up: run `e2e/fixtures/cleanup.sql`, then confirm `select count(*) from auth.users where email like '%@e2e.hisab-nikash.test'` is 0.
-4. If anything is broken, fix it on a `milestone-3-fixes` branch with tests, following the workflow below (subagent review, final verification, merge).
-5. Report the result to the user, delete this "Next step" section, and only then start **milestone 4** (folders, files and categories, SPEC.md §12).
-
 ## Milestone workflow (follow it for every milestone without being asked)
 
 1. **Branch:** start from an up-to-date `main` and create `milestone-N`.

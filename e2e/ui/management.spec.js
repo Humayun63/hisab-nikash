@@ -300,6 +300,13 @@ test.describe('phone viewport', () => {
     await loginAs(page, ORG_C.superAdmin)
     await gotoUsers(page)
     await noHorizontalScroll(page)
+    // Row actions must be on screen, not hidden in a sideways-scrolling table (browser check, 2026-11-04).
+    for (const name of ['Edit Max Member', 'Delete Max Member']) {
+      const box = await page.getByRole('button', { name }).boundingBox()
+      expect(box, name).not.toBeNull()
+      expect(box.x, name).toBeGreaterThanOrEqual(0)
+      expect(box.x + box.width, name).toBeLessThanOrEqual(390)
+    }
 
     await page.getByRole('button', { name: 'Add user' }).click()
     const dialog = page.getByRole('dialog')
