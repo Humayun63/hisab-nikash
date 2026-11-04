@@ -110,9 +110,13 @@ All of these actions need Supabase admin privileges, so they run in an Edge Func
 - The space switcher in the top bar lists only the spaces the current user belongs to. Super admins see all spaces.
 
 ### 5.5 Folders & files (admin, super admin)
-- The sidebar shows the current space's folders, with their files nested underneath.
-- Create, rename and delete folders and files. Deleting asks for confirmation and removes everything inside.
-- Each file shows its income total, expense total and net (counting visible categories only).
+- The space sidebar shows the current space's folders, sorted by name, with their files nested underneath. Each file shows its net total. Folders can be collapsed.
+- Every member sees the tree. Admins and the super admin also get *New folder*, and per folder *New file*, *Rename* and *Delete*.
+- Folder names are unique within the space and file names within their folder, ignoring case (1–100 characters). A duplicate gives "already exists".
+- Deleting asks for confirmation and removes everything inside. An admin can't delete a folder or file that contains entries in categories they can't see (§12a).
+- `/spaces/:spaceId/files/:fileId` shows the file's income, expense and net, and its entry count, counting visible categories only. Admins can rename or delete the file there. The entry list arrives in milestone 5.
+- The totals come from the RPC `space_file_totals(space_id)` (§7).
+- `/spaces/:spaceId` is an overview (folder, file and category counts) until the dashboard replaces it in milestone 6.
 
 ### 5.6 Categories (admin, super admin)
 `/spaces/:spaceId/categories`
@@ -122,6 +126,10 @@ All of these actions need Supabase admin privileges, so they run in an Edge Func
 - **Visibility (super admin only)**: either *Everyone in this space* (the default) or *Only selected members*, with a picker of space members.
   - Members who can't see a restricted category don't see it anywhere: not in category lists, not in entry lists, and not in dashboard totals. RLS enforces this on the server, not just the UI.
   - The super admin always sees every category.
+- The page lists Expense and Income categories separately, with each one's entry count (from `space_category_usage`, §7).
+  - *Delete* is only offered when a category has no entries; *Archive* / *Restore* always.
+  - When editing a category that has entries, the type is shown read-only.
+  - Admins don't see the *Visibility* action.
 
 ### 5.7 Entries (editor, admin, super admin add; everyone views)
 Shown on the file page at `/spaces/:spaceId/files/:fileId`.
@@ -240,6 +248,10 @@ Dashboard numbers come from Postgres functions (`rpc`). For speed they run as `s
 - `dashboard_by_category(space_id, from, to, folder_id?, file_id?)`
 - `dashboard_trend(space_id, from, to, bucket, folder_id?, file_id?)`
 
+Milestone 4 added two read RPCs for the space sidebar and the categories page:
+- `space_file_totals(space_id)` (`security definer`): income, expense and entry count per file, counting only categories the caller can see. It raises `42501` for anyone who isn't a member (or the super admin) of the space. Files without visible entries return no row.
+- `space_category_usage(space_id)` (`security invoker`): the number of entries per category, under the caller's RLS, so hidden categories are never counted.
+
 ## 8. Edge Functions
 
 There is one function, `admin-users` (`supabase/functions/admin-users/`), deployed with `verify_jwt = false`. It checks the caller itself with `auth.getUser(token)`: the caller must be an enabled super admin, and every target user must be in the caller's organization. The validation and permission rules are in `logic.js`, which Vitest unit-tests.
@@ -276,6 +288,7 @@ On a user's first successful login (password or email link), the client calls th
 | `/register`, `/login`, `/forgot-password`, `/reset-password`, `/verify-email` | Public |
 | `/setup` | Newly verified super admin with no organization yet |
 | `/change-password` | Users with `must_change_password` |
+| `/spaces/:spaceId` | Members (overview; becomes the dashboard in milestone 6) |
 | `/spaces/:spaceId/dashboard` | Members |
 | `/spaces/:spaceId/entries` | Members |
 | `/spaces/:spaceId/files/:fileId` | Members |
@@ -285,7 +298,9 @@ On a user's first successful login (password or email link), the client calls th
 | `/settings/organization` | Super admin |
 | `/settings/profile` | Everyone |
 
-Layout: a top bar with the space switcher and user menu, a left sidebar with Dashboard, All entries, Categories and the folder/file tree, and a main content area. On mobile the sidebar collapses into a drawer.
+Layout: a top bar with the space switcher and user menu, a space sidebar with Overview (later Dashboard and All entries), Categories (admin+), Settings (super admin) and the folder/file tree, and a main content area. On phones the space sidebar collapses behind a *Space menu* button.
+
+Pages inside a space that need a minimum role use `RequireSpaceRole`, which sends others back to the space overview. The database enforces the same rules.
 
 ## 10. Non-functional Requirements
 - **Responsive** down to 360px wide, because entries will often be added from a phone.

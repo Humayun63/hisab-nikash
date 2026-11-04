@@ -70,3 +70,59 @@ export const ORG_D = {
   deletable: { id: 'd0000000-0000-4000-8000-000000000004', email: 'fndelete@e2e.hisab-nikash.test' }, // has one entry ("by dell")
   space: { id: 'd2000000-0000-4000-8000-000000000001', name: 'D Space' },
 }
+
+// ---------------------------------------------------------------------------
+// Milestone 4: folders, files, categories
+// ---------------------------------------------------------------------------
+// Org E. "E Office" is for the UI tests (e2e/ui/structure.spec.js), which may change it;
+// "E Data" is for the API tests (e2e/db/structure.spec.js). Same members and roles in both.
+// Entries per file (visible to everyone unless marked restricted):
+//   Daily Costs: Sales +5000, Rent -1200, Private -300 (restricted)   Payroll: Sales +1000   Website: none
+//   Data File A: D Income +1000, D Expense -400, D Restricted -250 (restricted), D Archived -50 (archived)
+//   Data File B: none
+export const ORG_E = {
+  id: 'e1000000-0000-4000-8000-000000000001',
+  name: 'E2E Org E',
+  superAdmin: { id: 'e0000000-0000-4000-8000-000000000001', email: 'esa@e2e.hisab-nikash.test', name: 'Erin Super' },
+  admin: { id: 'e0000000-0000-4000-8000-000000000002', email: 'eadmin@e2e.hisab-nikash.test', name: 'Abe Admin' },
+  editor: { id: 'e0000000-0000-4000-8000-000000000003', email: 'eeditor@e2e.hisab-nikash.test', name: 'Ed Editor' },
+  viewer: { id: 'e0000000-0000-4000-8000-000000000004', email: 'eviewer@e2e.hisab-nikash.test', name: 'Vera Viewer' },
+  granted: { id: 'e0000000-0000-4000-8000-000000000005', email: 'egranted@e2e.hisab-nikash.test', name: 'Gus Granted' }, // viewer, may see the restricted categories
+  outsider: { id: 'e0000000-0000-4000-8000-000000000006', email: 'eoutsider@e2e.hisab-nikash.test', name: 'Olly Outside' }, // org member, no spaces
+  office: {
+    id: 'e2000000-0000-4000-8000-000000000001',
+    name: 'E Office',
+    folders: {
+      operations: { id: 'e3000000-0000-4000-8000-000000000001', name: 'Operations' },
+      projects: { id: 'e3000000-0000-4000-8000-000000000002', name: 'Projects' },
+      empty: { id: 'e3000000-0000-4000-8000-000000000003', name: 'Empty Folder' },
+    },
+    files: {
+      daily: { id: 'e4000000-0000-4000-8000-000000000001', name: 'Daily Costs' }, // in Operations
+      payroll: { id: 'e4000000-0000-4000-8000-000000000002', name: 'Payroll' }, // in Operations
+      website: { id: 'e4000000-0000-4000-8000-000000000003', name: 'Website' }, // in Projects, no entries
+    },
+    categories: {
+      rent: { id: 'e5000000-0000-4000-8000-000000000001', name: 'Rent' }, // expense, 1 entry
+      sales: { id: 'e5000000-0000-4000-8000-000000000002', name: 'Sales' }, // income, 2 entries
+      private: { id: 'e5000000-0000-4000-8000-000000000003', name: 'Private' }, // expense, restricted, 1 entry
+      legacy: { id: 'e5000000-0000-4000-8000-000000000004', name: 'Legacy' }, // expense, archived, no entries
+      unused: { id: 'e5000000-0000-4000-8000-000000000005', name: 'Unused' }, // income, no entries
+    },
+  },
+  data: {
+    id: 'e2000000-0000-4000-8000-000000000002',
+    name: 'E Data',
+    folder: { id: 'e3000000-0000-4000-8000-000000000011', name: 'Data Folder' },
+    files: {
+      a: { id: 'e4000000-0000-4000-8000-000000000011', name: 'Data File A' },
+      b: { id: 'e4000000-0000-4000-8000-000000000012', name: 'Data File B' },
+    },
+    categories: {
+      income: { id: 'e5000000-0000-4000-8000-000000000011', name: 'D Income' },
+      expense: { id: 'e5000000-0000-4000-8000-000000000012', name: 'D Expense' },
+      restricted: { id: 'e5000000-0000-4000-8000-000000000013', name: 'D Restricted' },
+      archived: { id: 'e5000000-0000-4000-8000-000000000014', name: 'D Archived' },
+    },
+  },
+}
