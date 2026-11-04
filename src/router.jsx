@@ -1,4 +1,4 @@
-import { createBrowserRouter } from 'react-router-dom'
+import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { GuestOnly, RequireReady, RequireStep } from './auth/guards'
 import LoginPage from './pages/auth/LoginPage'
 import RegisterPage from './pages/auth/RegisterPage'
@@ -12,7 +12,6 @@ import SetupPage from './pages/setup/SetupPage'
 import HomePage from './pages/HomePage'
 import RequireSuperAdmin from './auth/RequireSuperAdmin'
 import AppLayout from './components/layout/AppLayout'
-import SpacePage from './pages/spaces/SpacePage'
 import FilePage from './pages/spaces/FilePage'
 import CategoriesPage from './pages/spaces/CategoriesPage'
 import SpaceEntriesPage from './pages/entries/SpaceEntriesPage'
@@ -52,7 +51,9 @@ export const routes = [
             path: '/spaces/:spaceId',
             element: <SpaceLayout />,
             children: [
-              { index: true, element: <SpacePage /> },
+              { index: true, element: <Navigate to="dashboard" replace /> },
+              // Lazy, so the chart library only loads with the dashboard.
+              { path: 'dashboard', lazy: () => import('./pages/dashboard/DashboardPage').then((m) => ({ Component: m.default })) },
               { path: 'files/:fileId', element: <FilePage /> },
               { path: 'entries', element: <SpaceEntriesPage /> },
               { element: <RequireSpaceRole min="admin" />, children: [{ path: 'categories', element: <CategoriesPage /> }] },

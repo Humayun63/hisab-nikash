@@ -19,6 +19,7 @@ export function parseFilters(searchParams) {
     type: ['income', 'expense'].includes(get('type')) ? get('type') : '',
     addedBy: UUID.test(get('by')) ? get('by') : '',
     fileId: UUID.test(get('file')) ? get('file') : '',
+    folderId: UUID.test(get('folder')) ? get('folder') : '',
     sort: SORTS.includes(get('sort')) ? get('sort') : 'date',
     // Every column starts descending (newest, largest, Z→A) except when ?dir=asc.
     desc: get('dir') !== 'asc',
@@ -35,6 +36,7 @@ export function filtersToSearch(filters) {
   if (filters.type) params.set('type', filters.type)
   if (filters.addedBy) params.set('by', filters.addedBy)
   if (filters.fileId) params.set('file', filters.fileId)
+  if (filters.folderId) params.set('folder', filters.folderId)
   if (filters.sort && filters.sort !== 'date') params.set('sort', filters.sort)
   if (filters.desc === false) params.set('dir', 'asc')
   if (filters.page > 1) params.set('page', String(filters.page))
@@ -42,7 +44,7 @@ export function filtersToSearch(filters) {
 }
 
 export function hasActiveFilters(filters) {
-  return Boolean(filters.from || filters.to || filters.categoryIds.length || filters.type || filters.addedBy || filters.fileId)
+  return Boolean(filters.from || filters.to || filters.categoryIds.length || filters.type || filters.addedBy || filters.fileId || filters.folderId)
 }
 
 // Arguments for the space_entries RPC. `fileId` (the file page) overrides the File filter.
@@ -50,6 +52,7 @@ export function entriesRpcArgs(spaceId, filters, fileId) {
   return {
     p_space_id: spaceId,
     p_file_id: fileId || filters.fileId || null,
+    p_folder_id: fileId ? null : filters.folderId || null,
     p_from: filters.from || null,
     p_to: filters.to || null,
     p_category_ids: filters.categoryIds.length ? filters.categoryIds : null,

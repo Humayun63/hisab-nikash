@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useMatch, useNavigate, useParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabaseClient'
@@ -7,6 +7,7 @@ import { useFileTotals, useFolders, useSpaceRole } from '../../hooks/useSpaceDat
 import { hasRole, ROLE_LABELS } from '../../lib/roles'
 import { formatMoney } from '../../lib/format'
 import { checkWrite } from '../../lib/structureErrors'
+import { rememberLastSpace } from '../../lib/lastSpace'
 import ConfirmDialog from '../ui/ConfirmDialog'
 import NameModal from '../ui/NameModal'
 import Spinner from '../ui/Spinner'
@@ -138,6 +139,9 @@ export default function SpaceLayout() {
   const [action, setAction] = useState(null)
 
   const space = spaceQuery.data
+  useEffect(() => {
+    if (space) rememberLastSpace(space.id)
+  }, [space])
   if (spaceQuery.isPending) return <Spinner label="Loading space…" />
   if (spaceQuery.error) {
     return (
@@ -198,8 +202,8 @@ export default function SpaceLayout() {
 
         <div id="space-menu" className={`${menuOpen ? 'block' : 'hidden'} mt-4 rounded-xl bg-white p-3 shadow-sm ring-1 ring-slate-200 lg:block lg:bg-transparent lg:p-0 lg:shadow-none lg:ring-0`}>
           <nav aria-label="Space pages" className="space-y-0.5">
-            <NavLink to={`/spaces/${space.id}`} end className={sideLinkClass}>
-              Overview
+            <NavLink to={`/spaces/${space.id}/dashboard`} className={sideLinkClass}>
+              Dashboard
             </NavLink>
             <NavLink to={`/spaces/${space.id}/entries`} className={sideLinkClass}>
               All entries

@@ -114,9 +114,9 @@ All of these actions need Supabase admin privileges, so they run in an Edge Func
 - Every member sees the tree. Admins and the super admin also get *New folder*, and per folder *New file*, *Rename* and *Delete*.
 - Folder names are unique within the space and file names within their folder, ignoring case (1–100 characters). A duplicate gives "already exists".
 - Deleting asks for confirmation and removes everything inside. An admin can't delete a folder or file that contains entries in categories they can't see (§12a).
-- `/spaces/:spaceId/files/:fileId` shows the file's income, expense and net, and its entry count, counting visible categories only. Admins can rename or delete the file there. The entry list arrives in milestone 5.
+- `/spaces/:spaceId/files/:fileId` shows the file's income, expense and net, and its entry count, counting visible categories only. Admins can rename or delete the file there. Below them are the quick add form (editors and above) and the file's entry table (§5.7).
 - The totals come from the RPC `space_file_totals(space_id)` (§7).
-- `/spaces/:spaceId` is an overview (folder, file and category counts) until the dashboard replaces it in milestone 6.
+- `/spaces/:spaceId` redirects to the space's dashboard (§5.8).
 
 ### 5.6 Categories (admin, super admin)
 `/spaces/:spaceId/categories`
@@ -148,6 +148,15 @@ Shown on the file page at `/spaces/:spaceId/files/:fileId`.
 - **Space-wide entries view** at `/spaces/:spaceId/entries`: the same table across all files in the space, with an extra File column and a File filter.
 - Editing and deleting happen in a modal. Delete asks for confirmation.
 
+Implementation notes (milestone 5):
+- After saving, the quick add form keeps the category **and the date**, clears amount and note, and puts the cursor back in Amount. The category picker is a searchable combobox; with its list closed, Enter submits.
+- Amounts accept thousands separators ("1,250.50"), at most 2 decimals and at most 999,999,999,999.99 (`numeric(14,2)`).
+- Archived categories can't be picked for new entries, but an edited entry may keep the archived category it already has (the database allows an unchanged category).
+- The list comes from the RPC `space_entries` (§7). Filters, sort and page are kept in the URL (`?from=&to=&cat=&type=&by=&file=&folder=&sort=&dir=&page=`), so a filtered list can be linked to. Changing a filter or the sort returns to page 1.
+- Sorting by *Added by* sorts by name; entries by deleted users ("Deleted user") come last.
+- The File filter on the space-wide view can also pick a whole folder.
+- On phones the rows are stacked as cards and a *Sort by* select replaces the column headers; the filters are behind a *Filters* button.
+
 ### 5.8 Dashboard
 `/spaces/:spaceId/dashboard` (the landing page after login opens the last-used space)
 
@@ -159,6 +168,15 @@ Shown on the file page at `/spaces/:spaceId/files/:fileId`.
 - **Trend chart**: income and expense bars per day (for a week or month), per month (for a year), or bucketed automatically for a custom range.
 - **Recent entries**: the latest 10, each linking to its file.
 - Every figure only counts categories the viewer can see, and amounts are shown in the space's currency.
+
+Implementation notes (milestone 6):
+- Period and scope are kept in the URL (`?period=week|month|year|custom&from=&to=&scope=folder:<id>|file:<id>`). Periods run from their start to today in the organization's timezone; a custom range is clamped to today.
+- The comparison is with the previous period of the same number of days (e.g. "This month" on the 4th compares with the 4 days before it). With no data in the previous period the card says so instead of showing a percentage.
+- Custom range trend buckets: per day up to 62 days, per week up to 26 weeks, otherwise per month.
+- Category table rows link to `/spaces/:spaceId/entries` filtered by that category, the period and the scope (file or folder).
+- *Recent entries* are the latest 10 in the scope, whatever the period.
+- Charts are hidden from screen readers; the category tables and a *Show as a table* view of the trend carry the same numbers as text.
+- The last space opened is remembered per browser (`localStorage`); `/` redirects to its dashboard, or lists the spaces if there is none.
 
 ### 5.9 Organization settings (super admin)
 - Organization name, timezone, week start day
@@ -252,6 +270,9 @@ Milestone 4 added two read RPCs for the space sidebar and the categories page:
 - `space_file_totals(space_id)` (`security definer`): income, expense and entry count per file, counting only categories the caller can see. It raises `42501` for anyone who isn't a member (or the super admin) of the space. Files without visible entries return no row.
 - `space_category_usage(space_id)` (`security invoker`): the number of entries per category, under the caller's RLS, so hidden categories are never counted.
 
+Milestones 5 and 6 added the entry list RPC:
+- `space_entries(space_id, file_id?, folder_id?, from?, to?, category_ids?, type?, created_by?, sort, desc, limit, offset)` (`security definer`, same visibility rules as `private.visible_entries`): one page of entries with file, category and "added by" names, plus `total_count`, `total_income` and `total_expense` of every filtered row. `sort` is `date`, `category`, `amount` or `added_by`; `limit` is 1–200. It raises `42501` for non-members.
+
 ## 8. Edge Functions
 
 There is one function, `admin-users` (`supabase/functions/admin-users/`), deployed with `verify_jwt = false`. It checks the caller itself with `auth.getUser(token)`: the caller must be an enabled super admin, and every target user must be in the caller's organization. The validation and permission rules are in `logic.js`, which Vitest unit-tests.
@@ -288,7 +309,7 @@ On a user's first successful login (password or email link), the client calls th
 | `/register`, `/login`, `/forgot-password`, `/reset-password`, `/verify-email` | Public |
 | `/setup` | Newly verified super admin with no organization yet |
 | `/change-password` | Users with `must_change_password` |
-| `/spaces/:spaceId` | Members (overview; becomes the dashboard in milestone 6) |
+| `/spaces/:spaceId` | Members (redirects to the dashboard) |
 | `/spaces/:spaceId/dashboard` | Members |
 | `/spaces/:spaceId/entries` | Members |
 | `/spaces/:spaceId/files/:fileId` | Members |
@@ -298,9 +319,9 @@ On a user's first successful login (password or email link), the client calls th
 | `/settings/organization` | Super admin |
 | `/settings/profile` | Everyone |
 
-Layout: a top bar with the space switcher and user menu, a space sidebar with Overview (later Dashboard and All entries), Categories (admin+), Settings (super admin) and the folder/file tree, and a main content area. On phones the space sidebar collapses behind a *Space menu* button.
+Layout: a top bar with the space switcher and user menu, a space sidebar with Dashboard, All entries, Categories (admin+), Settings (super admin) and the folder/file tree, and a main content area. On phones the space sidebar collapses behind a *Space menu* button.
 
-Pages inside a space that need a minimum role use `RequireSpaceRole`, which sends others back to the space overview. The database enforces the same rules.
+Pages inside a space that need a minimum role use `RequireSpaceRole`, which sends others back to the space dashboard. The database enforces the same rules.
 
 ## 10. Non-functional Requirements
 - **Responsive** down to 360px wide, because entries will often be added from a phone.

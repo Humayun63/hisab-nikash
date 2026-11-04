@@ -44,11 +44,12 @@ export function useOrgProfiles() {
   })
 }
 
-// Everything that shows entry numbers: the lists, the sidebar file totals and category counts.
+// Everything that shows entry numbers: the lists, the dashboard, the sidebar file totals and category counts.
 export function invalidateEntryData(queryClient, spaceId) {
   return Promise.all([
     queryClient.invalidateQueries({ queryKey: ['entries', spaceId] }),
     queryClient.invalidateQueries({ queryKey: ['file-totals', spaceId] }),
     queryClient.invalidateQueries({ queryKey: ['category-usage', spaceId] }),
+    queryClient.invalidateQueries({ queryKey: ['dashboard', spaceId] }),
   ])
 }

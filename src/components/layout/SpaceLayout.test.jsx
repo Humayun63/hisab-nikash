@@ -187,7 +187,7 @@ describe('SpaceLayout role visibility', () => {
   ])('%s: categories=%s settings=%s admin actions=%s', (role, categories, settings, actions) => {
     useSpaceRole.mockReturnValue({ role, isPending: false })
     renderLayout()
-    expect(within(pagesNav()).getByRole('link', { name: 'Overview' })).toBeInTheDocument()
+    expect(within(pagesNav()).getByRole('link', { name: 'Dashboard' })).toBeInTheDocument()
     expect(!!within(pagesNav()).queryByRole('link', { name: 'Categories' })).toBe(categories)
     expect(!!within(pagesNav()).queryByRole('link', { name: 'Settings' })).toBe(settings)
     expect(!!screen.queryByRole('button', { name: 'New folder' })).toBe(actions)

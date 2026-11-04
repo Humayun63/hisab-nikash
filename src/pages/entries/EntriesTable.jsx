@@ -115,10 +115,19 @@ function Filters({ spaceId, filters, update, showFileFilter }) {
           ))}
         </SelectField>
         {showFileFilter && (
-          <SelectField label="File" value={filters.fileId} onChange={(e) => update({ fileId: e.target.value })}>
+          <SelectField
+            label="File"
+            value={filters.folderId ? `folder:${filters.folderId}` : filters.fileId}
+            onChange={(e) => {
+              const value = e.target.value
+              if (value.startsWith('folder:')) update({ folderId: value.slice(7), fileId: '' })
+              else update({ fileId: value, folderId: '' })
+            }}
+          >
             <option value="">All files</option>
             {(foldersQuery.data ?? []).map((folder) => (
               <optgroup key={folder.id} label={folder.name}>
+                <option value={`folder:${folder.id}`}>All of {folder.name}</option>
                 {folder.files.map((file) => (
                   <option key={file.id} value={file.id}>
                     {file.name}
@@ -132,7 +141,7 @@ function Filters({ spaceId, filters, update, showFileFilter }) {
       {active && (
         <button
           type="button"
-          onClick={() => update({ from: '', to: '', categoryIds: [], type: '', addedBy: '', fileId: '' })}
+          onClick={() => update({ from: '', to: '', categoryIds: [], type: '', addedBy: '', fileId: '', folderId: '' })}
           className="mt-2 text-sm font-medium text-emerald-700 hover:underline"
         >
           Clear filters
