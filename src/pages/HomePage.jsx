@@ -1,15 +1,24 @@
-import { Link } from 'react-router-dom'
+import { useState } from 'react'
+import { Link, Navigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { useSpaces } from '../hooks/useOrgData'
 import { ROLE_LABELS, roleInSpace } from '../lib/roles'
 import Spinner from '../components/ui/Spinner'
+import { readLastSpace, takeLanding } from '../lib/lastSpace'
 import useDocumentTitle from '../components/ui/useDocumentTitle'
 
-// Landing page until the dashboard (milestone 6): the spaces the user can open.
+// Landing page: on the first visit in a tab it opens the last-used space's dashboard; otherwise it
+// lists the spaces the user can open.
 export default function HomePage() {
   const { profile } = useAuth()
   const spacesQuery = useSpaces()
   useDocumentTitle('Home')
+
+  // Decided once on mount: the first visit in this tab may jump to the last space.
+  const [lastSpaceId] = useState(() => (takeLanding() ? readLastSpace() : null))
+  if (lastSpaceId && spacesQuery.data?.some((s) => s.id === lastSpaceId)) {
+    return <Navigate to={`/spaces/${lastSpaceId}/dashboard`} replace />
+  }
 
   return (
     <>
@@ -40,7 +49,7 @@ export default function HomePage() {
           {spacesQuery.data?.map((space) => (
             <li key={space.id}>
               <Link
-                to={`/spaces/${space.id}`}
+                to={`/spaces/${space.id}/dashboard`}
                 className="block rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200 hover:ring-emerald-300"
               >
                 <p className="font-medium text-slate-900">{space.name}</p>

@@ -14,9 +14,9 @@ const sidebar = (page) => page.getByRole('complementary', { name: `${office.name
 const dialog = (page) => page.getByRole('dialog')
 const row = (page, name) => page.getByRole('listitem', { name, exact: true })
 
-async function gotoOverview(page) {
+async function gotoDashboard(page) {
   await page.goto(base)
-  await expect(page.getByRole('heading', { name: 'Overview' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
   await expect(sidebar(page).getByRole('link', { name: /Daily Costs/ })).toBeVisible()
 }
 
@@ -37,10 +37,10 @@ test.describe('read-only members (viewer, editor)', () => {
   for (const [key, label] of [['viewer', 'viewer'], ['editor', 'editor']]) {
     test(`${label} sees the tree and totals but no management controls`, async ({ page }) => {
       await loginAs(page, ORG_E[key])
-      await gotoOverview(page)
+      await gotoDashboard(page)
       const side = sidebar(page)
 
-      await expect(side.getByRole('link', { name: 'Overview' })).toBeVisible()
+      await expect(side.getByRole('link', { name: 'Dashboard' })).toBeVisible()
       await expect(side.getByRole('link', { name: 'Categories' })).toHaveCount(0)
       await expect(side.getByRole('link', { name: 'Settings' })).toHaveCount(0)
 
@@ -62,8 +62,8 @@ test.describe('read-only members (viewer, editor)', () => {
       await expect(page.getByRole('button', { name: 'Delete file' })).toHaveCount(0)
 
       await page.goto(`${base}/categories`)
-      await expect(page).toHaveURL(new RegExp(`${base}$`))
-      await expect(page.getByRole('heading', { name: 'Overview' })).toBeVisible()
+      await expect(page).toHaveURL(new RegExp(`${base}/dashboard$`))
+      await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
     })
   }
 })
@@ -122,7 +122,7 @@ test.describe('folders and files as admin', () => {
     const renamedFile = `File R ${id}`
 
     await loginAs(page, ORG_E.admin)
-    await gotoOverview(page)
+    await gotoDashboard(page)
     const side = sidebar(page)
 
     // Create folder
@@ -159,11 +159,11 @@ test.describe('folders and files as admin', () => {
     await expect(page.getByRole('heading', { name: renamedFile })).toBeVisible()
     await expect(side.getByRole('link', { name: new RegExp(renamedFile) })).toBeVisible()
 
-    // Delete file: back to the overview
+    // Delete file: back to the dashboard
     await page.getByRole('button', { name: 'Delete file' }).click()
     await expect(dialog(page)).toContainText(`Delete ${renamedFile}?`)
     await dialog(page).getByRole('button', { name: 'Delete file' }).click()
-    await expect(page).toHaveURL(new RegExp(`${base}$`))
+    await expect(page).toHaveURL(new RegExp(`${base}/dashboard$`))
     await expect(side.getByRole('link', { name: new RegExp(renamedFile) })).toHaveCount(0)
 
     // Delete the now-empty folder
@@ -176,7 +176,7 @@ test.describe('folders and files as admin', () => {
 
   test('duplicate folder and file names are rejected', async ({ page }) => {
     await loginAs(page, ORG_E.admin)
-    await gotoOverview(page)
+    await gotoDashboard(page)
     const side = sidebar(page)
 
     await side.getByRole('button', { name: 'New folder' }).click()
@@ -196,7 +196,7 @@ test.describe('folders and files as admin', () => {
 
   test('an empty name is rejected before sending', async ({ page }) => {
     await loginAs(page, ORG_E.admin)
-    await gotoOverview(page)
+    await gotoDashboard(page)
     await sidebar(page).getByRole('button', { name: 'New folder' }).click()
     await dialog(page).getByRole('button', { name: 'Create folder' }).click()
     await expect(dialog(page)).toBeVisible()
@@ -204,12 +204,13 @@ test.describe('folders and files as admin', () => {
     await expect(page.getByRole('button', { name: 'Create folder' })).toBeVisible()
   })
 
-  test('the overview shows folder, file and category counts', async ({ page }) => {
+  test('the dashboard sidebar shows the folder tree and the admin links', async ({ page }) => {
     await loginAs(page, ORG_E.admin)
-    await gotoOverview(page)
-    await expect(page.getByText('Folders', { exact: true }).first()).toBeVisible()
-    await expect(page.getByText('Categories', { exact: true }).first()).toBeVisible()
-    await expect(page.getByText('Files', { exact: true }).first()).toBeVisible()
+    await gotoDashboard(page)
+    const side = sidebar(page)
+    await expect(side.getByRole('heading', { name: 'Folders', exact: true })).toBeVisible()
+    await expect(side.getByRole('link', { name: 'Categories' })).toBeVisible()
+    await expect(side.getByRole('button', { name: 'New folder' })).toBeVisible()
   })
 
   test('Website (no entries) shows zero totals', async ({ page }) => {
@@ -369,7 +370,7 @@ test.describe('phone layout', () => {
   test('the Space menu toggle shows and hides the folder tree', async ({ page }) => {
     await loginAs(page, ORG_E.viewer)
     await page.goto(base)
-    await expect(page.getByRole('heading', { name: 'Overview' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
     const toggle = page.getByRole('button', { name: 'Space menu' })
     await expect(toggle).toBeVisible()
     await expect(toggle).toHaveAttribute('aria-expanded', 'false')
@@ -379,7 +380,7 @@ test.describe('phone layout', () => {
     await toggle.click()
     await expect(page.getByRole('button', { name: 'Hide menu' })).toHaveAttribute('aria-expanded', 'true')
     await expect(side.getByRole('link', { name: /Daily Costs/ })).toBeVisible()
-    await expect(side.getByRole('link', { name: 'Overview' })).toBeVisible()
+    await expect(side.getByRole('link', { name: 'Dashboard' })).toBeVisible()
     await noHorizontalScroll(page)
 
     await page.getByRole('button', { name: 'Hide menu' }).click()
