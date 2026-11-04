@@ -15,6 +15,7 @@ import AppLayout from './components/layout/AppLayout'
 import SpacePage from './pages/spaces/SpacePage'
 import FilePage from './pages/spaces/FilePage'
 import CategoriesPage from './pages/spaces/CategoriesPage'
+import SpaceEntriesPage from './pages/entries/SpaceEntriesPage'
 import SpaceLayout from './components/layout/SpaceLayout'
 import RequireSpaceRole from './auth/RequireSpaceRole'
 import UsersPage from './pages/settings/UsersPage'
@@ -53,6 +54,7 @@ export const routes = [
             children: [
               { index: true, element: <SpacePage /> },
               { path: 'files/:fileId', element: <FilePage /> },
+              { path: 'entries', element: <SpaceEntriesPage /> },
               { element: <RequireSpaceRole min="admin" />, children: [{ path: 'categories', element: <CategoriesPage /> }] },
               { element: <RequireSuperAdmin />, children: [{ path: 'settings', element: <SpaceSettingsPage /> }] },
             ],

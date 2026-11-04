@@ -30,6 +30,9 @@ vi.mock('../../lib/supabaseClient', () => ({
   },
 }))
 vi.mock('../../hooks/useOrgData', () => ({ useSpace: vi.fn() }))
+// The entry form and list have their own tests.
+vi.mock('../entries/EntryForm', () => ({ QuickAddForm: () => <div>Quick add form</div> }))
+vi.mock('../entries/EntriesTable', () => ({ default: () => <div>Entries table</div> }))
 vi.mock('../../hooks/useSpaceData', () => ({ useSpaceRole: vi.fn(), useFolders: vi.fn(), useFileTotals: vi.fn() }))
 import { useSpace } from '../../hooks/useOrgData'
 import { useFileTotals, useFolders, useSpaceRole } from '../../hooks/useSpaceData'

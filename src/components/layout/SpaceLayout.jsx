@@ -201,6 +201,9 @@ export default function SpaceLayout() {
             <NavLink to={`/spaces/${space.id}`} end className={sideLinkClass}>
               Overview
             </NavLink>
+            <NavLink to={`/spaces/${space.id}/entries`} className={sideLinkClass}>
+              All entries
+            </NavLink>
             {canManage && (
               <NavLink to={`/spaces/${space.id}/categories`} className={sideLinkClass}>
                 Categories

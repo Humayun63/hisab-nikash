@@ -11,6 +11,8 @@ import ConfirmDialog from '../../components/ui/ConfirmDialog'
 import NameModal from '../../components/ui/NameModal'
 import Spinner from '../../components/ui/Spinner'
 import useDocumentTitle from '../../components/ui/useDocumentTitle'
+import { QuickAddForm } from '../entries/EntryForm'
+import EntriesTable from '../entries/EntriesTable'
 
 function Total({ label, value, tone }) {
   return (
@@ -59,6 +61,7 @@ export default function FilePage() {
   const totals = totalsQuery.data && (totalsQuery.data[file.id] ?? { income: 0, expense: 0, net: 0, entryCount: 0 })
   const money = (n) => (totals ? formatMoney(n, space.currency_code, space.currency_symbol) : '…')
   const canManage = hasRole(role, 'admin')
+  const canEdit = hasRole(role, 'editor')
   const refresh = () =>
     Promise.all([
       queryClient.invalidateQueries({ queryKey: ['folders', spaceId] }),
@@ -101,9 +104,12 @@ export default function FilePage() {
         )
       )}
 
-      <div className="mt-8 rounded-xl border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-600">
-        Adding and listing entries in this file is coming in the next milestone.
-      </div>
+      {canEdit && (
+        <div className="mt-6">
+          <QuickAddForm key={file.id} space={space} fileId={file.id} />
+        </div>
+      )}
+      <EntriesTable key={file.id} space={space} fileId={file.id} canEdit={canEdit} />
 
       <NameModal
         open={action === 'rename'}

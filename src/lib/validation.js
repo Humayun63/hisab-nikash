@@ -98,3 +98,29 @@ export const categorySchema = z.object({
   type: z.enum(['income', 'expense']),
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Choose a color'),
 })
+
+// ---------------------------------------------------------------------------
+// Entries
+// ---------------------------------------------------------------------------
+// Largest value numeric(14,2) can hold.
+export const MAX_AMOUNT = 999_999_999_999.99
+
+// `today` is "YYYY-MM-DD" in the organization's timezone; entries can't be dated after it.
+export function entrySchema(today) {
+  return z.object({
+    amount: z
+      .string()
+      .trim()
+      .min(1, 'Amount is required')
+      .transform((s) => s.replaceAll(',', ''))
+      .refine((s) => /^\d+(\.\d{1,2})?$/.test(s), 'Enter an amount like 250 or 99.50 (up to 2 decimals)')
+      .refine((s) => Number(s) > 0, 'Amount must be more than 0')
+      .refine((s) => Number(s) <= MAX_AMOUNT, 'Amount is too large'),
+    categoryId: z.string().min(1, 'Choose a category'),
+    entryDate: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, 'Choose a date')
+      .refine((d) => d <= today, 'The date can\'t be in the future'),
+    note: z.string().trim().max(500, 'Must be 500 characters or fewer'),
+  })
+}
