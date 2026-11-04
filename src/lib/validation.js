@@ -85,3 +85,16 @@ export const spaceSchema = z.object({
   description: z.string().trim().max(500, 'Must be 500 characters or fewer').optional().default(''),
   currencyCode: z.string().regex(/^[A-Z]{3}$/, 'Choose a currency'),
 })
+
+// ---------------------------------------------------------------------------
+// Folders, files and categories
+// ---------------------------------------------------------------------------
+export const nameSchema = z.object({
+  name: z.string().trim().min(1, 'Name is required').max(100, 'Must be 100 characters or fewer'),
+})
+
+export const categorySchema = z.object({
+  name: z.string().trim().min(1, 'Name is required').max(60, 'Must be 60 characters or fewer'),
+  type: z.enum(['income', 'expense']),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Choose a color'),
+})

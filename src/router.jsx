@@ -13,6 +13,10 @@ import HomePage from './pages/HomePage'
 import RequireSuperAdmin from './auth/RequireSuperAdmin'
 import AppLayout from './components/layout/AppLayout'
 import SpacePage from './pages/spaces/SpacePage'
+import FilePage from './pages/spaces/FilePage'
+import CategoriesPage from './pages/spaces/CategoriesPage'
+import SpaceLayout from './components/layout/SpaceLayout'
+import RequireSpaceRole from './auth/RequireSpaceRole'
 import UsersPage from './pages/settings/UsersPage'
 import SpacesPage from './pages/settings/SpacesPage'
 import SpaceSettingsPage from './pages/settings/SpaceSettingsPage'
@@ -43,13 +47,21 @@ export const routes = [
         element: <AppLayout />,
         children: [
           { path: '/', element: <HomePage /> },
-          { path: '/spaces/:spaceId', element: <SpacePage /> },
+          {
+            path: '/spaces/:spaceId',
+            element: <SpaceLayout />,
+            children: [
+              { index: true, element: <SpacePage /> },
+              { path: 'files/:fileId', element: <FilePage /> },
+              { element: <RequireSpaceRole min="admin" />, children: [{ path: 'categories', element: <CategoriesPage /> }] },
+              { element: <RequireSuperAdmin />, children: [{ path: 'settings', element: <SpaceSettingsPage /> }] },
+            ],
+          },
           {
             element: <RequireSuperAdmin />,
             children: [
               { path: '/settings/users', element: <UsersPage /> },
               { path: '/settings/spaces', element: <SpacesPage /> },
-              { path: '/spaces/:spaceId/settings', element: <SpaceSettingsPage /> },
             ],
           },
         ],

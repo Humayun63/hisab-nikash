@@ -11,3 +11,10 @@ export function roleInSpace(profile, space) {
   if (profile.is_super_admin) return 'super_admin'
   return space.space_members?.find((m) => m.user_id === profile.id)?.role ?? null
 }
+
+const RANK = { viewer: 1, editor: 2, admin: 3, super_admin: 4 }
+
+// True if `role` is at least `minRole` (mirrors private.has_space_role in the database).
+export function hasRole(role, minRole) {
+  return (RANK[role] ?? 0) >= (RANK[minRole] ?? Infinity)
+}
